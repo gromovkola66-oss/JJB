@@ -12,6 +12,7 @@ import { TeamSystem, Team, PlayerInfo } from './TeamSystem';
 import { RoundSystem, RoundState } from './RoundSystem';
 import { DoorSystem, Door } from './DoorSystem';
 import { soundSystem } from './SoundSystem';
+import { DustParticles } from './DustParticles';
 
 export interface DoorInteractionState {
   canInteract: boolean;
@@ -29,6 +30,7 @@ export class Game {
   private hands: Hands;
   private combat: Combat;
   private doorSystem: DoorSystem;
+  private dustParticles: DustParticles;
   public teamSystem: TeamSystem;
   public roundSystem: RoundSystem;
 
@@ -79,9 +81,13 @@ export class Game {
     this.controller = new FirstPersonController(camera);
 
     // Карта
-    this.prisonMap = new PrisonMap();
+    this.prisonMap = new PrisonMap({ renderer: this.renderer });
     this.scene.add(this.prisonMap.group);
     this.controller.setColliders(this.prisonMap.colliders);
+
+    // Dust particles
+    this.dustParticles = new DustParticles();
+    this.scene.add(this.dustParticles.group);
 
     // Система дверей
     this.doorSystem = new DoorSystem(this.scene);
@@ -344,6 +350,9 @@ export class Game {
     // Обновляем двери
     this.doorSystem.update(delta);
 
+    // Обновляем пылинки
+    this.dustParticles.update(delta);
+
     // Проверяем возможность взаимодействия с дверью
     if (this.onDoorInteraction) {
       const playerPos = this.controller.camera.position;
@@ -370,6 +379,7 @@ export class Game {
     this.renderer.dispose();
     this.controller.dispose();
     this.combat.dispose();
+    this.dustParticles.dispose();
     document.removeEventListener('keydown', this.onKeyDown.bind(this));
     window.removeEventListener('resize', this.onWindowResize.bind(this));
   }
