@@ -47,7 +47,7 @@ export class PlaytestMode {
     this.controller = new FirstPersonController(camera);
 
     // Руки
-    this.hands = new Hands();
+    this.hands = new Hands(team);
     camera.add(this.hands.group);
     this.scene.add(camera);
 

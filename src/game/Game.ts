@@ -45,6 +45,7 @@ export class Game {
   private onCombatUpdate?: (state: CombatState) => void;
   private onRoundUpdate?: (state: RoundState) => void;
   private onDoorInteraction?: (state: DoorInteractionState) => void;
+  private onSlotChanged?: (slot: number) => void;
   
   private frameCount = 0;
   private fpsTime = 0;
@@ -202,9 +203,15 @@ export class Game {
     this.currentTeam = info.team;
     this.spawnPoint = info.spawnPoint.clone();
     
+    // Recreate hands with correct team color
+    const camera = this.controller.camera;
+    camera.remove(this.hands.group);
+    const handsTeam = info.team === 'guard' ? 'guard' as const : 'prisoner' as const;
+    this.hands = new Hands(handsTeam);
+    camera.add(this.hands.group);
+    
     // Пересоздаём боевую систему с правильной командой
     this.combat.dispose();
-    const camera = this.controller.camera;
     const team = info.team === 'guard' ? 'guard' as const : 'prisoner' as const;
     this.combat = new Combat(camera, this.scene, this.hands, { team });
     this.combat.onStateChange = (state) => {
@@ -215,6 +222,9 @@ export class Game {
     };
     this.combat.onCameraRecoil = (amount) => {
       this.controller.addRecoil(amount);
+    };
+    this.combat.onSlotChanged = (slot) => {
+      if (this.onSlotChanged) this.onSlotChanged(slot);
     };
 
     // Телепортируем
@@ -292,6 +302,15 @@ export class Game {
     this.onDoorInteraction = callback;
   }
 
+  setOnSlotChanged(callback: (slot: number) => void) {
+    this.onSlotChanged = callback;
+    this.combat.onSlotChanged = callback;
+  }
+
+  selectSlot(index: number) {
+    this.combat.selectSlot(index);
+  }
+
   getTeam(): Team {
     return this.teamSystem.getTeam();
   }
@@ -363,9 +382,19 @@ export class Game {
     if (this.onDoorInteraction) {
       const playerPos = this.controller.camera.position;
       const { canInteract, door } = this.doorSystem.canInteract(playerPos);
+      
+      // Add look-direction check
+      let canSee = false;
+      if (canInteract && door) {
+        const dirToDoor = new THREE.Vector3().subVectors(door.mesh.position, playerPos).normalize();
+        const cameraDir = new THREE.Vector3();
+        this.controller.camera.getWorldDirection(cameraDir);
+        canSee = cameraDir.dot(dirToDoor) > 0.5; // Must be looking roughly toward door
+      }
+      
       this.onDoorInteraction({
-        canInteract,
-        door,
+        canInteract: canInteract && canSee,
+        door: (canInteract && canSee) ? door : null,
         isGuard: this.currentTeam === 'guard'
       });
     }

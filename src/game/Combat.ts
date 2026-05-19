@@ -11,6 +11,7 @@ export interface CombatState {
   maxAmmo: number;
   isDead: boolean;
   isReloading: boolean;
+  activeSlot: number;
 }
 
 export type CombatTeam = 'guard' | 'prisoner';
@@ -28,10 +29,12 @@ export class Combat {
   public weapon: Weapon | null = null;
   public hands: Hands;
   public droppedWeapons: THREE.Group[] = [];
+  private static readonly MAX_DROPPED_WEAPONS = 20;
   
   private hp = 100;
   private maxHp = 100;
   private isDead = false;
+  private activeSlot = 0; // 0=fists, 1=weapon
   
   // Состояние атаки
   private isPunching = false;
@@ -40,11 +43,21 @@ export class Combat {
   private punchRange = 2;
   private punchCooldownTime = 0.5; // секунды между ударами
   
+  // Auto-fire state
+  private isFiring = false;
+  
+  // Bound event handler references (for cleanup in dispose)
+  private boundOnMouseDown: (e: MouseEvent) => void;
+  private boundOnMouseUp: (e: MouseEvent) => void;
+  private boundOnKeyDown: (e: KeyboardEvent) => void;
+  private boundOnPointerLockChange: () => void;
+  
   // Callbacks
   public onStateChange?: (state: CombatState) => void;
   public onHit?: (damage: number) => void;
   public onDeath?: () => void;
   public onCameraRecoil?: (amount: number) => void;
+  public onSlotChanged?: (slot: number) => void;
   
   
 
@@ -58,6 +71,12 @@ export class Combat {
     this.scene = scene;
     this.hands = hands;
     this.team = options.team || 'prisoner';
+    
+    // Create bound handler references for later removal
+    this.boundOnMouseDown = this.onMouseDown.bind(this);
+    this.boundOnMouseUp = this.onMouseUp.bind(this);
+    this.boundOnKeyDown = this.onKeyDown.bind(this);
+    this.boundOnPointerLockChange = this.onPointerLockChange.bind(this);
     
     this.setupInput();
 
@@ -76,7 +95,44 @@ export class Combat {
     this.weapon = new Weapon(this.team);
     this.camera.add(this.weapon.group);
     this.hands.setVisible(false);
+    this.activeSlot = 1;
     this.notifyStateChange();
+    this.onSlotChanged?.(this.activeSlot);
+  }
+
+  // Select inventory slot: 0=fists, 1=weapon
+  selectSlot(index: number) {
+    if (this.isDead) return;
+    if (index === this.activeSlot) return;
+
+    // Reset fire intent on slot switch to prevent auto-fire crossover
+    this.isFiring = false;
+
+    if (index === 0) {
+      // Switch to fists
+      if (this.weapon) {
+        this.camera.remove(this.weapon.group);
+      }
+      this.hands.setVisible(true);
+      this.activeSlot = 0;
+    } else if (index === 1) {
+      // Switch to weapon (only if player has one)
+      if (this.weapon) {
+        this.hands.setVisible(false);
+        this.camera.add(this.weapon.group);
+        this.activeSlot = 1;
+      } else {
+        // No weapon available, stay on fists
+        return;
+      }
+    }
+
+    this.notifyStateChange();
+    this.onSlotChanged?.(this.activeSlot);
+  }
+
+  getActiveSlot(): number {
+    return this.activeSlot;
   }
 
   // Создать подбираемое оружие в указанной позиции
@@ -91,23 +147,40 @@ export class Combat {
     this.camera.remove(this.weapon.group);
     this.weapon = null;
     this.hands.setVisible(true);
+    this.activeSlot = 0;
     this.notifyStateChange();
+    this.onSlotChanged?.(this.activeSlot);
   }
 
   private setupInput() {
-    document.addEventListener('mousedown', this.onMouseDown.bind(this));
-    document.addEventListener('keydown', this.onKeyDown.bind(this));
+    document.addEventListener('mousedown', this.boundOnMouseDown);
+    document.addEventListener('mouseup', this.boundOnMouseUp);
+    document.addEventListener('keydown', this.boundOnKeyDown);
+    document.addEventListener('pointerlockchange', this.boundOnPointerLockChange);
   }
 
   private onMouseDown(event: MouseEvent) {
     if (document.pointerLockElement === null) return;
     
     if (event.button === 0) { // ЛКМ
-      if (this.weapon) {
+      this.isFiring = true;
+      if (this.activeSlot === 1 && this.weapon) {
         this.shoot();
       } else {
         this.punch();
       }
+    }
+  }
+
+  private onMouseUp(event: MouseEvent) {
+    if (event.button === 0) {
+      this.isFiring = false;
+    }
+  }
+
+  private onPointerLockChange() {
+    if (document.pointerLockElement === null) {
+      this.isFiring = false;
     }
   }
 
@@ -127,6 +200,12 @@ export class Combat {
           soundSystem.playReload();
           this.notifyStateChange();
         }
+        break;
+      case 'Digit1':
+        this.selectSlot(0);
+        break;
+      case 'Digit2':
+        this.selectSlot(1);
         break;
     }
   }
@@ -215,40 +294,7 @@ export class Combat {
   }
 
   private createDroppedWeapon(position: THREE.Vector3) {
-    const weaponGroup = new THREE.Group();
-    
-    const metalMaterial = new THREE.MeshStandardMaterial({
-      color: 0x2a2a2a,
-      roughness: 0.4,
-      metalness: 0.8
-    });
-    
-    const woodMaterial = new THREE.MeshStandardMaterial({
-      color: 0x8b4513,
-      roughness: 0.8,
-      metalness: 0.1
-    });
-
-    // Упрощённая модель AK на земле
-    const body = new THREE.Mesh(
-      new THREE.BoxGeometry(0.1, 0.1, 0.8),
-      metalMaterial
-    );
-    weaponGroup.add(body);
-
-    const stock = new THREE.Mesh(
-      new THREE.BoxGeometry(0.08, 0.08, 0.3),
-      woodMaterial
-    );
-    stock.position.set(0, 0, 0.4);
-    weaponGroup.add(stock);
-
-    const magazine = new THREE.Mesh(
-      new THREE.BoxGeometry(0.06, 0.15, 0.1),
-      metalMaterial
-    );
-    magazine.position.set(0, -0.1, 0);
-    weaponGroup.add(magazine);
+    const weaponGroup = this.buildWeaponModel();
 
     weaponGroup.position.copy(position);
     weaponGroup.rotation.z = Math.PI / 2;
@@ -257,9 +303,12 @@ export class Combat {
     // Метаданные для идентификации
     weaponGroup.userData.isWeapon = true;
     weaponGroup.userData.weaponType = 'AK-47';
+    weaponGroup.userData.velocity = new THREE.Vector3(0, 0, 0);
+    weaponGroup.userData.grounded = true;
     
     this.scene.add(weaponGroup);
     this.droppedWeapons.push(weaponGroup);
+    this.enforceDroppedWeaponCap();
   }
 
   private tryPickupWeapon() {
@@ -280,13 +329,15 @@ export class Combat {
         this.weapon = new Weapon(this.team);
         this.camera.add(this.weapon.group);
         
-        // Скрываем руки
+        // Скрываем руки и switch to weapon slot
         this.hands.setVisible(false);
+        this.activeSlot = 1;
         
         // Звук подбора
         soundSystem.playPickup();
         
         this.notifyStateChange();
+        this.onSlotChanged?.(this.activeSlot);
         return;
       }
     }
@@ -298,27 +349,91 @@ export class Combat {
     // Убираем оружие из камеры
     this.camera.remove(this.weapon.group);
     
-    // Создаём выброшенное оружие перед игроком
+    // Создаём выброшенное оружие перед игроком с physics
     const dropDirection = new THREE.Vector3();
     this.camera.getWorldDirection(dropDirection);
-    dropDirection.y = 0;
-    dropDirection.normalize();
     
     const dropPosition = this.camera.position.clone()
-      .add(dropDirection.multiplyScalar(1.5));
-    dropPosition.y = 0.5;
+      .add(dropDirection.clone().multiplyScalar(0.5));
     
-    this.createDroppedWeapon(dropPosition);
+    this.createDroppedWeaponWithPhysics(
+      dropPosition,
+      dropDirection.clone().multiplyScalar(3).add(new THREE.Vector3(0, 2, 0))
+    );
     
     this.weapon = null;
     
-    // Показываем руки
+    // Показываем руки and switch to fists slot
     this.hands.setVisible(true);
+    this.activeSlot = 0;
     
     // Звук выброса
     soundSystem.playDrop();
     
     this.notifyStateChange();
+    this.onSlotChanged?.(this.activeSlot);
+  }
+
+  private createDroppedWeaponWithPhysics(position: THREE.Vector3, velocity: THREE.Vector3) {
+    const weaponGroup = this.buildWeaponModel();
+
+    weaponGroup.position.copy(position);
+    weaponGroup.rotation.y = Math.random() * Math.PI;
+    
+    // Метаданные для идентификации and physics
+    weaponGroup.userData.isWeapon = true;
+    weaponGroup.userData.weaponType = 'AK-47';
+    weaponGroup.userData.velocity = velocity.clone();
+    weaponGroup.userData.grounded = false;
+    
+    this.scene.add(weaponGroup);
+    this.droppedWeapons.push(weaponGroup);
+    this.enforceDroppedWeaponCap();
+  }
+
+  private buildWeaponModel(): THREE.Group {
+    const weaponGroup = new THREE.Group();
+    
+    const metalMaterial = new THREE.MeshStandardMaterial({
+      color: 0x2a2a2a,
+      roughness: 0.4,
+      metalness: 0.8
+    });
+    
+    const woodMaterial = new THREE.MeshStandardMaterial({
+      color: 0x8b4513,
+      roughness: 0.8,
+      metalness: 0.1
+    });
+
+    const body = new THREE.Mesh(
+      new THREE.BoxGeometry(0.1, 0.1, 0.8),
+      metalMaterial
+    );
+    weaponGroup.add(body);
+
+    const stock = new THREE.Mesh(
+      new THREE.BoxGeometry(0.08, 0.08, 0.3),
+      woodMaterial
+    );
+    stock.position.set(0, 0, 0.4);
+    weaponGroup.add(stock);
+
+    const magazine = new THREE.Mesh(
+      new THREE.BoxGeometry(0.06, 0.15, 0.1),
+      metalMaterial
+    );
+    magazine.position.set(0, -0.1, 0);
+    weaponGroup.add(magazine);
+
+    return weaponGroup;
+  }
+
+  private enforceDroppedWeaponCap() {
+    while (this.droppedWeapons.length > Combat.MAX_DROPPED_WEAPONS) {
+      const oldest = this.droppedWeapons.shift()!;
+      this.scene.remove(oldest);
+    }
   }
 
   takeDamage(damage: number) {
@@ -337,6 +452,7 @@ export class Combat {
 
   private die() {
     this.isDead = true;
+    this.isFiring = false;
     if (this.onDeath) this.onDeath();
     
     // Выбрасываем оружие при смерти
@@ -371,7 +487,8 @@ export class Combat {
       ammo: this.weapon?.stats.currentAmmo ?? 0,
       maxAmmo: this.weapon?.stats.maxAmmo ?? 0,
       isDead: this.isDead,
-      isReloading: this.weapon?.isCurrentlyReloading() ?? false
+      isReloading: this.weapon?.isCurrentlyReloading() ?? false,
+      activeSlot: this.activeSlot
     };
   }
 
@@ -379,6 +496,11 @@ export class Combat {
     // Обновляем кулдаун удара
     if (this.punchCooldown > 0) {
       this.punchCooldown -= delta;
+    }
+    
+    // Auto-fire: continuously shoot while holding mouse button
+    if (this.isFiring && this.activeSlot === 1 && this.weapon) {
+      this.shoot();
     }
     
     // Обновляем оружие
@@ -392,15 +514,44 @@ export class Combat {
       }
     }
     
-    // Вращение выброшенного оружия (для визуала)
+    // Physics for dropped weapons
     for (const dropped of this.droppedWeapons) {
-      dropped.rotation.y += delta * 0.5;
-      // Небольшое покачивание
-      dropped.position.y = 0.5 + Math.sin(performance.now() * 0.002) * 0.05;
+      if (dropped.userData.grounded) continue;
+      
+      const vel = dropped.userData.velocity as THREE.Vector3;
+      if (!vel) continue;
+      
+      // Apply gravity
+      vel.y -= 15 * delta;
+      
+      // Move
+      dropped.position.add(vel.clone().multiplyScalar(delta));
+      
+      // Rotate while in air
+      dropped.rotation.x += delta * vel.length() * 2;
+      
+      // Floor collision (y=0.15 is floor level for the weapon model)
+      if (dropped.position.y <= 0.15) {
+        dropped.position.y = 0.15;
+        if (Math.abs(vel.y) > 1) {
+          vel.y = -vel.y * 0.3; // Bounce with damping
+          vel.x *= 0.7;
+          vel.z *= 0.7;
+        } else {
+          vel.set(0, 0, 0);
+          dropped.userData.grounded = true;
+          // Lay flat on ground
+          dropped.rotation.x = 0;
+          dropped.rotation.z = Math.PI / 2;
+        }
+      }
     }
   }
 
   dispose() {
-    // Очистка обработчиков
+    document.removeEventListener('mousedown', this.boundOnMouseDown);
+    document.removeEventListener('mouseup', this.boundOnMouseUp);
+    document.removeEventListener('keydown', this.boundOnKeyDown);
+    document.removeEventListener('pointerlockchange', this.boundOnPointerLockChange);
   }
 }

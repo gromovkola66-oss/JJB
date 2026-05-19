@@ -13,9 +13,11 @@ interface GameUIProps {
   doorState: DoorInteractionState | null;
   isWarden: boolean;
   guardMenuOpen: boolean;
+  activeSlot: number;
+  onSlotSelect?: (index: number) => void;
 }
 
-export const GameUI = ({ fps, position, isLocked, combatState, team, teamName, doorState, isWarden: _isWarden, guardMenuOpen }: GameUIProps) => {
+export const GameUI = ({ fps, position, isLocked, combatState, team, teamName, doorState, isWarden: _isWarden, guardMenuOpen, activeSlot, onSlotSelect }: GameUIProps) => {
   
   return (
     <div className="fixed inset-0 pointer-events-none select-none">
@@ -227,6 +229,38 @@ export const GameUI = ({ fps, position, isLocked, combatState, team, teamName, d
       )}
 
       {/* Роль игрока - теперь внизу слева над HP */}
+
+      {/* Hotbar - inventory slots */}
+      {isLocked && combatState && (
+        <div className="absolute bottom-16 left-1/2 transform -translate-x-1/2 flex gap-1 pointer-events-auto">
+          {/* Slot 0: Fists */}
+          <button
+            onClick={() => onSlotSelect?.(0)}
+            className={`w-14 h-14 rounded-lg border-2 flex flex-col items-center justify-center transition-all ${
+              activeSlot === 0
+                ? 'border-yellow-400 bg-black/80 scale-110'
+                : 'border-gray-500 bg-black/50 hover:border-gray-300'
+            }`}
+          >
+            <span className="text-lg">&#x270A;</span>
+            <span className="text-[9px] text-gray-300">1</span>
+          </button>
+          {/* Slot 1: Weapon */}
+          {combatState.hasWeapon && (
+            <button
+              onClick={() => onSlotSelect?.(1)}
+              className={`w-14 h-14 rounded-lg border-2 flex flex-col items-center justify-center transition-all ${
+                activeSlot === 1
+                  ? 'border-yellow-400 bg-black/80 scale-110'
+                  : 'border-gray-500 bg-black/50 hover:border-gray-300'
+              }`}
+            >
+              <span className="text-lg">&#x1F52B;</span>
+              <span className="text-[9px] text-gray-300">2</span>
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Экран смерти */}
       {isLocked && combatState?.isDead && (
