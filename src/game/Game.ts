@@ -1,4 +1,9 @@
 import * as THREE from 'three';
+import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
+import { SSAOPass } from 'three/examples/jsm/postprocessing/SSAOPass.js';
+import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
 import { PrisonMapDetailed as PrisonMap } from './PrisonMapDetailed';
 import { FirstPersonController } from './FirstPersonController';
 import { Hands } from './Hands';
@@ -17,6 +22,7 @@ export interface DoorInteractionState {
 export class Game {
   private scene: THREE.Scene;
   private renderer: THREE.WebGLRenderer;
+  private composer: EffectComposer;
 
   private prisonMap: PrisonMap;
   private controller: FirstPersonController;
@@ -57,6 +63,8 @@ export class Game {
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    this.renderer.toneMappingExposure = 1.0;
     container.appendChild(this.renderer.domElement);
 
     // Камера
@@ -87,6 +95,24 @@ export class Game {
     this.hands = new Hands();
     camera.add(this.hands.group);
     this.scene.add(camera);
+
+    // Post-processing pipeline
+    this.composer = new EffectComposer(this.renderer);
+    this.composer.addPass(new RenderPass(this.scene, camera));
+
+    const ssaoPass = new SSAOPass(this.scene, camera, window.innerWidth, window.innerHeight);
+    ssaoPass.kernelRadius = 8;
+    ssaoPass.minDistance = 0.005;
+    ssaoPass.maxDistance = 0.1;
+    this.composer.addPass(ssaoPass);
+
+    const bloomPass = new UnrealBloomPass(
+      new THREE.Vector2(window.innerWidth, window.innerHeight),
+      0.3, 0.4, 0.85
+    );
+    this.composer.addPass(bloomPass);
+
+    this.composer.addPass(new OutputPass());
 
     // Урон от падения и приземление
     this.controller.onFallDamage = (damage) => {
@@ -233,6 +259,7 @@ export class Game {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
     this.renderer.setSize(window.innerWidth, window.innerHeight);
+    this.composer.setSize(window.innerWidth, window.innerHeight);
   }
 
   setOnStatsUpdate(callback: (fps: number, pos: THREE.Vector3) => void) {
@@ -334,11 +361,12 @@ export class Game {
     }
 
     // Рендерим
-    this.renderer.render(this.scene, this.controller.camera);
+    this.composer.render(delta);
   }
 
   dispose() {
     this.stop();
+    this.composer.dispose();
     this.renderer.dispose();
     this.controller.dispose();
     this.combat.dispose();
