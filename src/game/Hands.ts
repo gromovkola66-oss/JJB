@@ -15,6 +15,7 @@ export class Hands {
   private isPunching = false;
   private punchProgress = 0;
   private readonly punchDuration = 0.35;
+  private punchHand: 'right' | 'left' = 'right';
 
   // Руки вытянуты вперёд, рукава уходят за нижний край экрана
   private readonly leftRest = new THREE.Vector3(-0.24, -0.2, -0.5);
@@ -125,6 +126,8 @@ export class Hands {
     if (this.isPunching) return;
     this.isPunching = true;
     this.punchProgress = 0;
+    // Toggle hand for next punch
+    this.punchHand = this.punchHand === 'right' ? 'left' : 'right';
   }
 
   update(delta: number) {
@@ -138,22 +141,45 @@ export class Hands {
         const p = this.punchProgress;
         const ease = (t: number) => 1 - (1 - t) ** 3;
 
-        if (p < 0.2) {
-          const t = ease(p / 0.2);
-          this.rightArm.position.set(this.rightRest.x + t * 0.03, this.rightRest.y + t * 0.04, this.rightRest.z + t * 0.1);
-          this.rightArm.rotation.x = t * 0.25;
-        } else if (p < 0.45) {
-          const t = ease((p - 0.2) / 0.25);
-          this.rightArm.position.set(this.rightRest.x, this.rightRest.y + 0.04 * (1 - t), this.rightRest.z + 0.1 - t * 0.3);
-          this.rightArm.rotation.x = 0.25 - t * 0.45;
+        if (this.punchHand === 'right') {
+          // Right arm punches forward
+          if (p < 0.2) {
+            const t = ease(p / 0.2);
+            this.rightArm.position.set(this.rightRest.x + t * 0.03, this.rightRest.y + t * 0.04, this.rightRest.z + t * 0.1);
+            this.rightArm.rotation.x = t * 0.25;
+          } else if (p < 0.45) {
+            const t = ease((p - 0.2) / 0.25);
+            this.rightArm.position.set(this.rightRest.x, this.rightRest.y + 0.04 * (1 - t), this.rightRest.z + 0.1 - t * 0.3);
+            this.rightArm.rotation.x = 0.25 - t * 0.45;
+          } else {
+            const t = ease((p - 0.45) / 0.55);
+            this.rightArm.position.set(this.rightRest.x, this.rightRest.y + 0.015 * (1 - t), this.rightRest.z - 0.2 + t * 0.2);
+            this.rightArm.rotation.x = -0.2 * (1 - t);
+          }
+          // Left arm subtle reaction
+          const lr = Math.sin(p * Math.PI) * 0.015;
+          this.leftArm.position.set(this.leftRest.x, this.leftRest.y + lr, this.leftRest.z - lr);
+          this.leftArm.rotation.x = 0;
         } else {
-          const t = ease((p - 0.45) / 0.55);
-          this.rightArm.position.set(this.rightRest.x, this.rightRest.y + 0.015 * (1 - t), this.rightRest.z - 0.2 + t * 0.2);
-          this.rightArm.rotation.x = -0.2 * (1 - t);
+          // Left arm punches forward (mirrored)
+          if (p < 0.2) {
+            const t = ease(p / 0.2);
+            this.leftArm.position.set(this.leftRest.x - t * 0.03, this.leftRest.y + t * 0.04, this.leftRest.z + t * 0.1);
+            this.leftArm.rotation.x = t * 0.25;
+          } else if (p < 0.45) {
+            const t = ease((p - 0.2) / 0.25);
+            this.leftArm.position.set(this.leftRest.x, this.leftRest.y + 0.04 * (1 - t), this.leftRest.z + 0.1 - t * 0.3);
+            this.leftArm.rotation.x = 0.25 - t * 0.45;
+          } else {
+            const t = ease((p - 0.45) / 0.55);
+            this.leftArm.position.set(this.leftRest.x, this.leftRest.y + 0.015 * (1 - t), this.leftRest.z - 0.2 + t * 0.2);
+            this.leftArm.rotation.x = -0.2 * (1 - t);
+          }
+          // Right arm subtle reaction
+          const lr = Math.sin(p * Math.PI) * 0.015;
+          this.rightArm.position.set(this.rightRest.x, this.rightRest.y + lr, this.rightRest.z - lr);
+          this.rightArm.rotation.x = 0;
         }
-        const lr = Math.sin(p * Math.PI) * 0.015;
-        this.leftArm.position.set(this.leftRest.x, this.leftRest.y + lr, this.leftRest.z - lr);
-        this.leftArm.rotation.x = 0;
         return;
       }
     }

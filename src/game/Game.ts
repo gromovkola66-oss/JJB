@@ -382,9 +382,19 @@ export class Game {
     if (this.onDoorInteraction) {
       const playerPos = this.controller.camera.position;
       const { canInteract, door } = this.doorSystem.canInteract(playerPos);
+      
+      // Add look-direction check
+      let canSee = false;
+      if (canInteract && door) {
+        const dirToDoor = new THREE.Vector3().subVectors(door.mesh.position, playerPos).normalize();
+        const cameraDir = new THREE.Vector3();
+        this.controller.camera.getWorldDirection(cameraDir);
+        canSee = cameraDir.dot(dirToDoor) > 0.5; // Must be looking roughly toward door
+      }
+      
       this.onDoorInteraction({
-        canInteract,
-        door,
+        canInteract: canInteract && canSee,
+        door: (canInteract && canSee) ? door : null,
         isGuard: this.currentTeam === 'guard'
       });
     }
