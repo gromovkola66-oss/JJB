@@ -12,8 +12,6 @@ export class EditorCamera {
   
   private isRightMouseDown = false;
   private euler = new THREE.Euler(0, 0, 0, 'YXZ');
-  private lastMouseX = 0;
-  private lastMouseY = 0;
   
   private speed = 15;
   private fastSpeed = 30;
@@ -88,33 +86,18 @@ export class EditorCamera {
   }
 
   private onMouseMove(e: MouseEvent) {
-    if (!this.isRightMouseDown) {
-      this.lastMouseX = e.clientX;
-      this.lastMouseY = e.clientY;
-      return;
-    }
+    if (!this.isRightMouseDown) return;
 
     const sensitivity = 0.003;
     
-    // Use movementX/Y if available, otherwise compute delta manually
-    let dx = e.movementX;
-    let dy = e.movementY;
-    if (dx === 0 && dy === 0 && (this.lastMouseX !== 0 || this.lastMouseY !== 0)) {
-      dx = e.clientX - this.lastMouseX;
-      dy = e.clientY - this.lastMouseY;
-    }
-    
     this.euler.setFromQuaternion(this.camera.quaternion);
-    this.euler.y -= dx * sensitivity;
-    this.euler.x -= dy * sensitivity;
+    this.euler.y -= e.movementX * sensitivity;
+    this.euler.x -= e.movementY * sensitivity;
     
     // Ограничение вертикального угла
     this.euler.x = Math.max(-Math.PI / 2 + 0.01, Math.min(Math.PI / 2 - 0.01, this.euler.x));
     
     this.camera.quaternion.setFromEuler(this.euler);
-    
-    this.lastMouseX = e.clientX;
-    this.lastMouseY = e.clientY;
   }
 
   private onWheel(e: WheelEvent) {

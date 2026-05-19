@@ -16,11 +16,6 @@ export class FirstPersonController {
   private euler = new THREE.Euler(0, 0, 0, 'YXZ');
   private readonly PI_2 = Math.PI / 2;
 
-  // Mouse fallback (when pointer lock is unavailable)
-  private lastMouseX = 0;
-  private lastMouseY = 0;
-  private isMouseDown = false;
-
   private walkSpeed = 8;
   private sprintSpeed = 14;
   private crouchSpeed = 4;
@@ -47,8 +42,6 @@ export class FirstPersonController {
   private boundOnKeyUp: (e: KeyboardEvent) => void;
   private boundOnMouseMove: (e: MouseEvent) => void;
   private boundOnClick: (e: MouseEvent) => void;
-  private boundOnMouseDown: (e: MouseEvent) => void;
-  private boundOnMouseUp: (e: MouseEvent) => void;
 
   // Callbacks
   public onFallDamage?: (damage: number) => void;
@@ -63,8 +56,6 @@ export class FirstPersonController {
     this.boundOnKeyUp = this.onKeyUp.bind(this);
     this.boundOnMouseMove = this.onMouseMove.bind(this);
     this.boundOnClick = this.onClick.bind(this);
-    this.boundOnMouseDown = this.onMouseDown.bind(this);
-    this.boundOnMouseUp = this.onMouseUp.bind(this);
 
     this.setupEventListeners();
   }
@@ -84,8 +75,6 @@ export class FirstPersonController {
     document.addEventListener('keyup', this.boundOnKeyUp);
     document.addEventListener('mousemove', this.boundOnMouseMove);
     document.addEventListener('click', this.boundOnClick);
-    document.addEventListener('mousedown', this.boundOnMouseDown);
-    document.addEventListener('mouseup', this.boundOnMouseUp);
     window.addEventListener('blur', () => this.resetMovement());
     document.addEventListener('pointerlockchange', () => { if (!this.isLocked) this.resetMovement(); });
   }
@@ -101,43 +90,15 @@ export class FirstPersonController {
     if (!this.isLocked && this.pointerLockEnabled) document.body.requestPointerLock();
   }
 
-  private onMouseDown(event: MouseEvent) {
-    if (event.button === 0) {
-      this.isMouseDown = true;
-      this.lastMouseX = event.clientX;
-      this.lastMouseY = event.clientY;
-      if (!this.isLocked && this.pointerLockEnabled) document.body.requestPointerLock();
-    }
-  }
-
-  private onMouseUp(event: MouseEvent) {
-    if (event.button === 0) {
-      this.isMouseDown = false;
-    }
-  }
-
   addRecoil(amount: number) { this.recoilPitch += amount; }
 
   private onMouseMove(event: MouseEvent) {
-    if (this.isLocked) {
-      // Use movementX/Y (pointer lock mode)
-      this.euler.setFromQuaternion(this.camera.quaternion);
-      this.euler.y -= (event.movementX || 0) * 0.002;
-      this.euler.x -= (event.movementY || 0) * 0.002;
-      this.euler.x = Math.max(-this.PI_2 + 0.01, Math.min(this.PI_2 - 0.01, this.euler.x));
-      this.camera.quaternion.setFromEuler(this.euler);
-    } else if (this.isMouseDown && this.pointerLockEnabled) {
-      // Fallback: use delta from last position
-      const dx = event.clientX - this.lastMouseX;
-      const dy = event.clientY - this.lastMouseY;
-      this.euler.setFromQuaternion(this.camera.quaternion);
-      this.euler.y -= dx * 0.002;
-      this.euler.x -= dy * 0.002;
-      this.euler.x = Math.max(-this.PI_2 + 0.01, Math.min(this.PI_2 - 0.01, this.euler.x));
-      this.camera.quaternion.setFromEuler(this.euler);
-    }
-    this.lastMouseX = event.clientX;
-    this.lastMouseY = event.clientY;
+    if (!this.isLocked) return;
+    this.euler.setFromQuaternion(this.camera.quaternion);
+    this.euler.y -= (event.movementX || 0) * 0.002;
+    this.euler.x -= (event.movementY || 0) * 0.002;
+    this.euler.x = Math.max(-this.PI_2 + 0.01, Math.min(this.PI_2 - 0.01, this.euler.x));
+    this.camera.quaternion.setFromEuler(this.euler);
   }
 
   private onKeyDown(event: KeyboardEvent) {
@@ -190,7 +151,7 @@ export class FirstPersonController {
   isMoving(): boolean { return this.moveForward || this.moveBackward || this.moveLeft || this.moveRight; }
 
   update(delta: number) {
-    if (!this.pointerLockEnabled) return;
+    if (!this.isLocked) return;
 
     // Height transition (crouch)
     const targetHeight = this.isCrouching ? this.crouchHeight : this.standHeight;
@@ -271,7 +232,5 @@ export class FirstPersonController {
     document.removeEventListener('keyup', this.boundOnKeyUp);
     document.removeEventListener('mousemove', this.boundOnMouseMove);
     document.removeEventListener('click', this.boundOnClick);
-    document.removeEventListener('mousedown', this.boundOnMouseDown);
-    document.removeEventListener('mouseup', this.boundOnMouseUp);
   }
 }
