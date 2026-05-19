@@ -107,6 +107,7 @@ export class MapEditor {
     this.renderer.domElement.addEventListener('mouseup', this.onMouseUp.bind(this));
     this.renderer.domElement.addEventListener('click', this.onClick.bind(this));
     this.renderer.domElement.addEventListener('contextmenu', (e) => e.preventDefault());
+    this.renderer.domElement.addEventListener('auxclick', (e) => { if (e.button === 1) e.preventDefault(); });
     document.addEventListener('keydown', this.onKeyDown.bind(this));
     window.addEventListener('resize', this.onResize.bind(this));
   }
