@@ -114,6 +114,10 @@ const GameApp = ({ onBackToMenu }: GameAppProps) => {
     return () => {
       document.removeEventListener('pointerlockchange', handlePointerLockChange);
       game.dispose();
+      // Clear container in case dispose didn't remove canvas
+      if (containerRef.current) {
+        containerRef.current.innerHTML = '';
+      }
     };
   }, []);
 

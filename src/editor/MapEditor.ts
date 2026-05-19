@@ -814,5 +814,5 @@ export class MapEditor {
     this.renderer.render(this.scene, this.editorCamera.camera);
   }
   getObjectTypes() { return getAllEditorObjectTypes(); }
-  dispose() { this.stop(); this.renderer.dispose(); this.editorCamera.dispose(); }
+  dispose() { this.stop(); this.renderer.domElement.parentElement?.removeChild(this.renderer.domElement); this.renderer.dispose(); this.editorCamera.dispose(); }
 }

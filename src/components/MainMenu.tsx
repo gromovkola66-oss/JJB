@@ -488,8 +488,8 @@ const MenuScene = () => {
     return () => {
       cancelAnimationFrame(animId);
       window.removeEventListener("resize", onResize);
+      renderer.domElement.parentElement?.removeChild(renderer.domElement);
       renderer.dispose();
-      if (containerRef.current?.contains(renderer.domElement)) containerRef.current.removeChild(renderer.domElement);
     };
   }, []);
 

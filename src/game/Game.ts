@@ -342,6 +342,7 @@ export class Game {
 
   dispose() {
     this.stop();
+    this.renderer.domElement.parentElement?.removeChild(this.renderer.domElement);
     this.renderer.dispose();
     this.controller.dispose();
     this.combat.dispose();
