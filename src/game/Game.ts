@@ -164,12 +164,14 @@ export class Game {
   }
 
   private onKeyDown(event: KeyboardEvent) {
-    if (event.code === 'KeyE' && document.pointerLockElement !== null) {
-      // If in terminal mode, exit
+    if (event.code === 'KeyE') {
+      // Terminal exit does NOT require pointer lock (pointer lock is released while in terminal mode)
       if (this.inTerminalMode) {
         this.cameraSystem.exitTerminalMode();
         return;
       }
+      // All other E interactions require pointer lock
+      if (document.pointerLockElement === null) return;
       // Try to interact with terminal first
       // Note: Any team (guard or prisoner) can use security terminals - this is intentional.
       if (this.cameraSystem.terminalHighlighted) {
@@ -471,6 +473,7 @@ export class Game {
     this.renderer.dispose();
     this.controller.dispose();
     this.combat.dispose();
+    this.cameraSystem.dispose();
     document.removeEventListener('keydown', this.boundKeyDown);
     window.removeEventListener('resize', this.boundWindowResize);
   }

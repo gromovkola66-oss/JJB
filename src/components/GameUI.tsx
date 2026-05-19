@@ -244,7 +244,7 @@ export const GameUI = ({ fps, position, isLocked, combatState, team, teamName, d
       )}
 
       {/* Terminal mode overlay */}
-      {isLocked && cameraState?.inTerminalMode && (
+      {cameraState?.inTerminalMode && (
         <div className="absolute inset-0 pointer-events-auto">
           {/* Dark overlay background (only when in grid view) */}
           {cameraState.selectedCameraIndex === null && (

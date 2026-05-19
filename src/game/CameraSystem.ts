@@ -45,6 +45,16 @@ export class CameraSystem {
 
   private terminalScreenTarget: THREE.WebGLRenderTarget;
   private terminalScreenElapsed = 0;
+  private terminalDataTextures: Map<string, THREE.DataTexture> = new Map();
+
+  // Pooled buffers for captureScreenshots to avoid per-tick allocation
+  private screenshotBuffer: Uint8Array;
+  private screenshotCanvas: HTMLCanvasElement;
+  private screenshotCtx: CanvasRenderingContext2D;
+  private screenshotImageData: ImageData;
+
+  // Pooled buffer for updateTerminalScreen pixel copy
+  private terminalPixelBuffer: Uint8Array;
 
   public onStateChange?: (state: CameraSystemState) => void;
 
@@ -53,6 +63,18 @@ export class CameraSystem {
     this.renderer = renderer;
     this.securityCamera = new THREE.PerspectiveCamera(70, 16 / 9, 0.1, 200);
     this.terminalScreenTarget = new THREE.WebGLRenderTarget(256, 144);
+
+    // Pre-allocate pooled buffers
+    const width = 256;
+    const height = 144;
+    this.screenshotBuffer = new Uint8Array(width * height * 4);
+    this.screenshotCanvas = document.createElement('canvas');
+    this.screenshotCanvas.width = width;
+    this.screenshotCanvas.height = height;
+    this.screenshotCtx = this.screenshotCanvas.getContext('2d')!;
+    this.screenshotImageData = this.screenshotCtx.createImageData(width, height);
+
+    this.terminalPixelBuffer = new Uint8Array(width * height * 4);
   }
 
   registerTerminal(id: string, mesh: THREE.Object3D, position: THREE.Vector3, groupId: number) {
@@ -242,6 +264,13 @@ export class CameraSystem {
     const currentRenderTarget = this.renderer.getRenderTarget();
     const screenshots: string[] = [];
 
+    const width = 256;
+    const height = 144;
+    const buffer = this.screenshotBuffer;
+    const canvas = this.screenshotCanvas;
+    const ctx = this.screenshotCtx;
+    const imageData = this.screenshotImageData;
+
     for (const cam of this._activeCameras) {
       this.securityCamera.position.copy(cam.position);
       this.securityCamera.rotation.copy(cam.rotation);
@@ -252,18 +281,10 @@ export class CameraSystem {
       this.renderer.render(this.scene, this.securityCamera);
       this.renderer.setRenderTarget(null);
 
-      // Read pixels to canvas and get dataURL
-      const width = 256;
-      const height = 144;
-      const buffer = new Uint8Array(width * height * 4);
+      // Read pixels using pooled buffer
       this.renderer.readRenderTargetPixels(this.terminalScreenTarget, 0, 0, width, height, buffer);
 
-      const canvas = document.createElement('canvas');
-      canvas.width = width;
-      canvas.height = height;
-      const ctx = canvas.getContext('2d')!;
-      const imageData = ctx.createImageData(width, height);
-      // Flip vertically (WebGL reads bottom-to-top)
+      // Flip vertically (WebGL reads bottom-to-top) using pooled imageData
       for (let y = 0; y < height; y++) {
         for (let x = 0; x < width; x++) {
           const srcIdx = ((height - 1 - y) * width + x) * 4;
@@ -288,6 +309,9 @@ export class CameraSystem {
     if (this.terminalScreenElapsed < 0.5) return;
     this.terminalScreenElapsed = 0;
 
+    const width = 256;
+    const height = 144;
+
     // Iterate ALL registered terminals and render the first linked camera's view onto each terminal's screen mesh
     for (const terminal of this.terminals) {
       const linkedCams = this.cameras.filter(c => c.groupId === terminal.groupId);
@@ -304,13 +328,27 @@ export class CameraSystem {
       this.renderer.render(this.scene, this.securityCamera);
       this.renderer.setRenderTarget(currentRenderTarget);
 
-      // Apply the texture to terminal screen meshes
+      // Copy pixels into a per-terminal DataTexture to avoid shared render target overwrite
+      this.renderer.readRenderTargetPixels(this.terminalScreenTarget, 0, 0, width, height, this.terminalPixelBuffer);
+
+      let dataTexture = this.terminalDataTextures.get(terminal.id);
+      if (!dataTexture) {
+        dataTexture = new THREE.DataTexture(new Uint8Array(width * height * 4), width, height, THREE.RGBAFormat);
+        dataTexture.flipY = true;
+        this.terminalDataTextures.set(terminal.id, dataTexture);
+      }
+
+      // Copy pixel buffer into the DataTexture's data
+      (dataTexture.image.data as Uint8Array).set(this.terminalPixelBuffer);
+      dataTexture.needsUpdate = true;
+
+      // Apply the per-terminal DataTexture to terminal screen meshes
       terminal.mesh.traverse((child) => {
         if (child instanceof THREE.Mesh) {
           const mat = child.material as THREE.MeshStandardMaterial;
           if (mat === undefined) return;
           if (mat.emissive && mat.emissiveIntensity > 0.2 && mat.color.getHex() === 0x1a2a4a) {
-            mat.map = this.terminalScreenTarget.texture;
+            mat.map = dataTexture!;
             mat.needsUpdate = true;
           }
         }
@@ -323,6 +361,18 @@ export class CameraSystem {
     if (this._inTerminalMode && this._selectedCameraIndex !== null) {
       this.renderFromCamera(mainCamera);
     }
+  }
+
+  dispose() {
+    if (this.screenshotInterval !== null) {
+      clearInterval(this.screenshotInterval);
+      this.screenshotInterval = null;
+    }
+    this.terminalScreenTarget.dispose();
+    for (const dataTexture of this.terminalDataTextures.values()) {
+      dataTexture.dispose();
+    }
+    this.terminalDataTextures.clear();
   }
 
   private emitState() {

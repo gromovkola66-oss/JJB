@@ -107,11 +107,14 @@ export class PlaytestMode {
   }
 
   private onKeyDown = (event: KeyboardEvent) => {
-    if (event.code === 'KeyE' && document.pointerLockElement !== null) {
+    if (event.code === 'KeyE') {
+      // Terminal exit does NOT require pointer lock (pointer lock is released while in terminal mode)
       if (this.inTerminalMode) {
         this.cameraSystem.exitTerminalMode();
         return;
       }
+      // All other E interactions require pointer lock
+      if (document.pointerLockElement === null) return;
       if (this.cameraSystem.terminalHighlighted) {
         const playerPos = this.controller.camera.position;
         this.cameraSystem.enterTerminalMode(playerPos);
@@ -299,6 +302,7 @@ export class PlaytestMode {
     this.renderer.dispose();
     this.controller.dispose();
     this.combat.dispose();
+    this.cameraSystem.dispose();
     document.removeEventListener('keydown', this.onKeyDown);
     window.removeEventListener('resize', this.boundOnResize);
   }
