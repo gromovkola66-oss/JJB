@@ -175,7 +175,7 @@ export class PlaytestMode {
           camPos,
           camRot,
           objData.groupId ?? 1,
-          `Камера ${cameraCount}`
+          objData.label || `Камера ${cameraCount}`
         );
         continue;
       }

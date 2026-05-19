@@ -11,6 +11,7 @@ export interface PlacedObject {
   rotationZ?: number;
   scale?: number;
   groupId?: number;
+  label?: string;
 }
 
 export interface MapData {

@@ -250,21 +250,25 @@ export const GameUI = ({ fps, position, isLocked, combatState, team, teamName, d
           {cameraState.selectedCameraIndex === null && (
             <div className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center">
               <div className="text-green-400 text-2xl font-bold mb-6 font-mono">СИСТЕМА НАБЛЮДЕНИЯ</div>
-              <div className="grid grid-cols-2 gap-4 w-[600px] max-w-[80vw]">
-                {cameraState.cameras.map((cam, idx) => (
-                  <div
-                    key={cam.id}
-                    className="bg-gray-900 border border-green-600/50 rounded-lg p-4 cursor-pointer hover:border-green-400 hover:bg-gray-800 transition-colors"
-                    onClick={() => onSelectCamera?.(idx)}
-                  >
-                    <div className="text-green-400 font-mono text-sm mb-1">CAM {idx + 1}</div>
-                    <div className="text-gray-300 text-lg">{cam.label}</div>
-                    <div className="mt-2 h-24 bg-gray-950 rounded flex items-center justify-center border border-gray-700">
-                      <span className="text-gray-500 text-sm font-mono">LIVE</span>
+              {cameraState.cameras.length === 0 ? (
+                <div className="text-gray-400 text-lg font-mono">Нет подключённых камер</div>
+              ) : (
+                <div className="grid grid-cols-2 gap-4 w-[600px] max-w-[80vw]">
+                  {cameraState.cameras.map((cam, idx) => (
+                    <div
+                      key={cam.id}
+                      className="bg-gray-900 border border-green-600/50 rounded-lg p-4 cursor-pointer hover:border-green-400 hover:bg-gray-800 transition-colors"
+                      onClick={() => onSelectCamera?.(idx)}
+                    >
+                      <div className="text-green-400 font-mono text-sm mb-1">CAM {idx + 1}</div>
+                      <div className="text-gray-300 text-lg">{cam.label}</div>
+                      <div className="mt-2 h-24 bg-gray-950 rounded flex items-center justify-center border border-gray-700">
+                        <span className="text-gray-500 text-sm font-mono">LIVE</span>
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
               <div className="mt-6 text-gray-400 text-sm">
                 Нажмите <span className="text-yellow-400 font-bold">E</span> - Выйти
               </div>

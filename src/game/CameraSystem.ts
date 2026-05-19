@@ -33,9 +33,7 @@ export class CameraSystem {
   private _selectedCameraIndex: number | null = null;
   private _activeCameras: SecurityCamera[] = [];
 
-  private highlightedMesh: THREE.Mesh | null = null;
-  private originalEmissive: THREE.Color | null = null;
-  private originalEmissiveIntensity: number = 0;
+  private highlightedMeshes: { mesh: THREE.Mesh; originalEmissive: THREE.Color; originalEmissiveIntensity: number }[] = [];
 
   private interactionRange = 3;
 
@@ -90,9 +88,14 @@ export class CameraSystem {
 
     if (hit) {
       const hitMesh = intersects[0].object as THREE.Mesh;
-      if (hitMesh !== this.highlightedMesh) {
+      // Find the terminal group this mesh belongs to
+      const terminalGroup = this.findTerminalGroup(hitMesh);
+      const currentGroup = this.highlightedMeshes.length > 0 ? this.findTerminalGroup(this.highlightedMeshes[0].mesh) : null;
+      if (terminalGroup !== currentGroup) {
         this.clearHighlight();
-        this.applyHighlight(hitMesh);
+        if (terminalGroup) {
+          this.applyHighlight(terminalGroup);
+        }
       }
       this._terminalHighlighted = true;
     } else {
@@ -107,26 +110,42 @@ export class CameraSystem {
     return hit;
   }
 
-  private applyHighlight(mesh: THREE.Mesh) {
-    const mat = mesh.material as THREE.MeshStandardMaterial;
-    if (!mat || !mat.emissive) return;
-    this.highlightedMesh = mesh;
-    this.originalEmissive = mat.emissive.clone();
-    this.originalEmissiveIntensity = mat.emissiveIntensity;
-    mat.emissive.set(0x00ffaa);
-    mat.emissiveIntensity = 0.4;
+  private findTerminalGroup(mesh: THREE.Object3D): THREE.Object3D | null {
+    let current: THREE.Object3D | null = mesh;
+    while (current) {
+      for (const terminal of this.terminals) {
+        if (terminal.mesh === current) return current;
+      }
+      current = current.parent;
+    }
+    return null;
+  }
+
+  private applyHighlight(group: THREE.Object3D) {
+    group.traverse((child) => {
+      if (child instanceof THREE.Mesh) {
+        const mat = child.material as THREE.MeshStandardMaterial;
+        if (!mat || !mat.emissive) return;
+        this.highlightedMeshes.push({
+          mesh: child,
+          originalEmissive: mat.emissive.clone(),
+          originalEmissiveIntensity: mat.emissiveIntensity,
+        });
+        mat.emissive.set(0x00ffaa);
+        mat.emissiveIntensity = 0.08;
+      }
+    });
   }
 
   private clearHighlight() {
-    if (this.highlightedMesh) {
-      const mat = this.highlightedMesh.material as THREE.MeshStandardMaterial;
-      if (mat && this.originalEmissive) {
-        mat.emissive.copy(this.originalEmissive);
-        mat.emissiveIntensity = this.originalEmissiveIntensity;
+    for (const entry of this.highlightedMeshes) {
+      const mat = entry.mesh.material as THREE.MeshStandardMaterial;
+      if (mat) {
+        mat.emissive.copy(entry.originalEmissive);
+        mat.emissiveIntensity = entry.originalEmissiveIntensity;
       }
-      this.highlightedMesh = null;
-      this.originalEmissive = null;
     }
+    this.highlightedMeshes = [];
   }
 
   enterTerminalMode(playerPosition: THREE.Vector3): boolean {
@@ -145,13 +164,10 @@ export class CameraSystem {
 
     // Get cameras linked to this terminal via groupId
     this._activeCameras = this.cameras.filter(c => c.groupId === nearest!.groupId);
-    if (this._activeCameras.length === 0) {
-      // If no cameras match groupId, show all cameras
-      this._activeCameras = [...this.cameras];
-    }
 
     this._inTerminalMode = true;
     this._selectedCameraIndex = null;
+    document.exitPointerLock();
     this.emitState();
     return true;
   }
@@ -160,6 +176,7 @@ export class CameraSystem {
     this._inTerminalMode = false;
     this._selectedCameraIndex = null;
     this._activeCameras = [];
+    document.body.requestPointerLock();
     this.emitState();
   }
 
