@@ -6,6 +6,7 @@ import { PlaytestMode } from './editor/PlaytestMode';
 import { EditorUI } from './components/EditorUI';
 import { EditorObjectType } from './editor/EditorObjects';
 import { CombatState } from './game/Combat';
+import { CameraSystemState } from './game/CameraSystem';
 
 interface EditorAppProps {
   onBackToGame: () => void;
@@ -37,6 +38,7 @@ export const EditorApp = ({ onBackToGame }: EditorAppProps) => {
   const [ptPos, setPtPos] = useState<THREE.Vector3 | null>(null);
   const [ptCombat, setPtCombat] = useState<CombatState | null>(null);
   const [ptLocked, setPtLocked] = useState(false);
+  const [ptCameraState, setPtCameraState] = useState<CameraSystemState | null>(null);
 
   // === EDITOR ===
   useEffect(() => {
@@ -143,6 +145,9 @@ export const EditorApp = ({ onBackToGame }: EditorAppProps) => {
       pt.onCombatUpdate = (state) => {
         setPtCombat({ ...state });
       };
+      pt.onCameraSystemUpdate = (state) => {
+        setPtCameraState({ ...state });
+      };
 
       pt.start();
     }, 100);
@@ -156,7 +161,12 @@ export const EditorApp = ({ onBackToGame }: EditorAppProps) => {
     if (document.pointerLockElement) {
       document.exitPointerLock();
     }
+    setPtCameraState(null);
     setMode('editing');
+  }, []);
+
+  const handleSelectCamera = useCallback((idx: number | null) => {
+    playtestRef.current?.selectCamera(idx);
   }, []);
 
   // === Editor handlers ===
@@ -346,6 +356,82 @@ export const EditorApp = ({ onBackToGame }: EditorAppProps) => {
                   ← Вернуться в редактор (F9)
                 </button>
               </div>
+            </div>
+          )}
+
+          {/* Terminal highlight hint */}
+          {ptLocked && ptCameraState?.terminalHighlighted && !ptCameraState.inTerminalMode && (
+            <div className="absolute bottom-20 left-1/2 -translate-x-1/2">
+              <div className="bg-cyan-900/80 text-white px-6 py-3 rounded-lg">
+                <div className="font-bold">Терминал камер</div>
+                <div className="text-sm text-cyan-200">
+                  Нажмите <span className="text-yellow-400 font-bold">E</span> для просмотра камер
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Terminal mode overlay */}
+          {ptCameraState?.inTerminalMode && (
+            <div className="absolute inset-0 pointer-events-auto">
+              {/* Grid view */}
+              {ptCameraState.selectedCameraIndex === null && (
+                <div className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center">
+                  <div className="text-green-400 text-2xl font-bold mb-6 font-mono">СИСТЕМА НАБЛЮДЕНИЯ</div>
+                  {ptCameraState.cameras.length === 0 ? (
+                    <div className="text-gray-400 text-lg font-mono">Нет подключённых камер</div>
+                  ) : (
+                    <div className="grid grid-cols-2 gap-4 w-[600px] max-w-[80vw]">
+                      {ptCameraState.cameras.map((cam, idx) => (
+                        <div
+                          key={cam.id}
+                          className="bg-gray-900 border border-green-600/50 rounded-lg p-4 cursor-pointer hover:border-green-400 hover:bg-gray-800 transition-colors"
+                          onClick={() => handleSelectCamera(idx)}
+                        >
+                          <div className="text-green-400 font-mono text-sm mb-1">CAM {idx + 1}</div>
+                          <div className="text-gray-300 text-lg">{cam.label}</div>
+                          <div className="mt-2 h-24 bg-gray-950 rounded flex items-center justify-center border border-gray-700 overflow-hidden">
+                            {ptCameraState.screenshots && ptCameraState.screenshots[idx] ? (
+                              <img src={ptCameraState.screenshots[idx]} alt={`Camera ${idx + 1}`} className="w-full h-full object-cover" />
+                            ) : (
+                              <span className="text-gray-500 text-sm font-mono">LIVE</span>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <div className="mt-6 text-gray-400 text-sm">
+                    Нажмите <span className="text-yellow-400 font-bold">E</span> - Выйти
+                  </div>
+                </div>
+              )}
+
+              {/* Zoomed camera view */}
+              {ptCameraState.selectedCameraIndex !== null && (
+                <div className="absolute inset-0 flex flex-col">
+                  <div className="bg-black/70 px-4 py-2 flex items-center justify-between">
+                    <div className="text-green-400 font-mono text-sm">
+                      CAM {ptCameraState.selectedCameraIndex + 1} - {ptCameraState.cameras[ptCameraState.selectedCameraIndex]?.label}
+                    </div>
+                    <div className="text-green-400 font-mono text-sm animate-pulse">REC</div>
+                  </div>
+                  <div className="flex-1 relative pointer-events-none">
+                    <div className="absolute inset-0 bg-gradient-to-b from-transparent via-green-400/[0.02] to-transparent bg-[length:100%_4px] animate-pulse"></div>
+                  </div>
+                  <div className="bg-black/70 px-4 py-2 flex items-center justify-between">
+                    <div
+                      className="text-gray-300 text-sm cursor-pointer hover:text-white pointer-events-auto"
+                      onClick={() => handleSelectCamera(null)}
+                    >
+                      ← Назад к сетке
+                    </div>
+                    <div className="text-gray-400 text-sm">
+                      <span className="text-yellow-400 font-bold">E</span> - Выйти
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
