@@ -262,8 +262,12 @@ export const GameUI = ({ fps, position, isLocked, combatState, team, teamName, d
                     >
                       <div className="text-green-400 font-mono text-sm mb-1">CAM {idx + 1}</div>
                       <div className="text-gray-300 text-lg">{cam.label}</div>
-                      <div className="mt-2 h-24 bg-gray-950 rounded flex items-center justify-center border border-gray-700">
-                        <span className="text-gray-500 text-sm font-mono">LIVE</span>
+                      <div className="mt-2 h-24 bg-gray-950 rounded flex items-center justify-center border border-gray-700 overflow-hidden">
+                        {cameraState.screenshots && cameraState.screenshots[idx] ? (
+                          <img src={cameraState.screenshots[idx]} alt={`Camera ${idx + 1}`} className="w-full h-full object-cover" />
+                        ) : (
+                          <span className="text-gray-500 text-sm font-mono">LIVE</span>
+                        )}
                       </div>
                     </div>
                   ))}

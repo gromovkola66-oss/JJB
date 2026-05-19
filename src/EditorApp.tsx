@@ -183,6 +183,8 @@ export const EditorApp = ({ onBackToGame }: EditorAppProps) => {
 
   const handleDelete = useCallback(() => { editorRef.current?.deleteSelected(); }, []);
   const handleRotate = useCallback(() => { editorRef.current?.rotateSelected(); }, []);
+  const handleUpdateGroupId = useCallback((id: number) => { editorRef.current?.updateSelectedGroupId(id); }, []);
+  const handleUpdateLabel = useCallback((label: string) => { editorRef.current?.updateSelectedLabel(label); }, []);
 
   return (
     <div className="w-screen h-screen overflow-hidden bg-black">
@@ -222,6 +224,8 @@ export const EditorApp = ({ onBackToGame }: EditorAppProps) => {
           onRedo={handleRedo}
           onBackToGame={onBackToGame}
           onPlaytest={openTeamSelect}
+          onUpdateGroupId={handleUpdateGroupId}
+          onUpdateLabel={handleUpdateLabel}
         />
       )}
 

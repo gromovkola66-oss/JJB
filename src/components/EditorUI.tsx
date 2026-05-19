@@ -26,6 +26,8 @@ interface EditorUIProps {
   onRedo: () => void;
   onBackToGame: () => void;
   onPlaytest: () => void;
+  onUpdateGroupId?: (id: number) => void;
+  onUpdateLabel?: (label: string) => void;
 }
 
 export const EditorUI = ({
@@ -35,6 +37,7 @@ export const EditorUI = ({
   onSelectType, onToggleGrid, onToggleMove,
   onExport, onImport, onClear, onDelete, onRotate, onDuplicate,
   onUndo, onRedo, onBackToGame, onPlaytest,
+  onUpdateGroupId, onUpdateLabel,
 }: EditorUIProps) => {
   const [showImport, setShowImport] = useState(false);
   const [importText, setImportText] = useState('');
@@ -148,6 +151,31 @@ export const EditorUI = ({
               <button onClick={onDuplicate} className="py-2 bg-violet-600/80 hover:bg-violet-500 text-white rounded-lg text-xs transition-all hover:scale-105 active:scale-95" title="Дублировать (Ctrl+D)">📋</button>
               <button onClick={onDelete} className="py-2 bg-red-600/80 hover:bg-red-500 text-white rounded-lg text-xs transition-all hover:scale-105 active:scale-95" title="Удалить (Del)">🗑️</button>
             </div>
+            {(selectedObject.type === 'terminal' || selectedObject.type === 'camera') && (
+              <div className="mt-3 space-y-2 bg-black/20 rounded-lg p-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-400 text-sm">Group ID</span>
+                  <input
+                    type="number"
+                    value={selectedObject.groupId ?? 1}
+                    onChange={(e) => onUpdateGroupId?.(parseInt(e.target.value) || 1)}
+                    className="w-20 bg-gray-700 text-white text-sm rounded px-2 py-1 border border-gray-600 focus:outline-none focus:border-blue-500"
+                  />
+                </div>
+                {selectedObject.type === 'camera' && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-400 text-sm">Label</span>
+                    <input
+                      type="text"
+                      value={selectedObject.label ?? ''}
+                      onChange={(e) => onUpdateLabel?.(e.target.value)}
+                      className="w-32 bg-gray-700 text-white text-sm rounded px-2 py-1 border border-gray-600 focus:outline-none focus:border-blue-500"
+                      placeholder="Camera name"
+                    />
+                  </div>
+                )}
+              </div>
+            )}
             {moveModeEnabled && (
               <div className="mt-2 text-xs text-emerald-300 bg-emerald-900/30 border border-emerald-700/40 rounded-lg p-2 animate-pulse">↔️ Двигай мышью → ЛКМ фиксация</div>
             )}

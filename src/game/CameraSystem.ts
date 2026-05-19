@@ -20,6 +20,7 @@ export interface CameraSystemState {
   terminalHighlighted: boolean;
   cameras: SecurityCamera[];
   selectedCameraIndex: number | null;
+  screenshots: string[];
 }
 
 export class CameraSystem {
@@ -32,6 +33,7 @@ export class CameraSystem {
   private _terminalHighlighted = false;
   private _selectedCameraIndex: number | null = null;
   private _activeCameras: SecurityCamera[] = [];
+  private _screenshots: string[] = [];
 
   private highlightedMeshes: { mesh: THREE.Mesh; originalEmissive: THREE.Color; originalEmissiveIntensity: number }[] = [];
 
@@ -39,12 +41,19 @@ export class CameraSystem {
 
   private securityCamera: THREE.PerspectiveCamera;
 
+  private screenshotInterval: ReturnType<typeof setInterval> | null = null;
+
+  private terminalScreenTarget: THREE.WebGLRenderTarget;
+  private terminalScreenElapsed = 0;
+  private activeTerminalGroupId: number | null = null;
+
   public onStateChange?: (state: CameraSystemState) => void;
 
   constructor(scene: THREE.Scene, renderer: THREE.WebGLRenderer) {
     this.scene = scene;
     this.renderer = renderer;
     this.securityCamera = new THREE.PerspectiveCamera(70, 16 / 9, 0.1, 200);
+    this.terminalScreenTarget = new THREE.WebGLRenderTarget(256, 144);
   }
 
   registerTerminal(id: string, mesh: THREE.Object3D, position: THREE.Vector3, groupId: number) {
@@ -164,9 +173,19 @@ export class CameraSystem {
 
     // Get cameras linked to this terminal via groupId
     this._activeCameras = this.cameras.filter(c => c.groupId === nearest!.groupId);
+    this.activeTerminalGroupId = nearest.groupId;
 
     this._inTerminalMode = true;
     this._selectedCameraIndex = null;
+
+    // Capture initial screenshots
+    this.captureScreenshots();
+
+    // Set up interval to refresh screenshots every 1 second
+    this.screenshotInterval = setInterval(() => {
+      this.captureScreenshots();
+    }, 1000);
+
     document.exitPointerLock();
     this.emitState();
     return true;
@@ -176,6 +195,12 @@ export class CameraSystem {
     this._inTerminalMode = false;
     this._selectedCameraIndex = null;
     this._activeCameras = [];
+    this._screenshots = [];
+    this.activeTerminalGroupId = null;
+    if (this.screenshotInterval !== null) {
+      clearInterval(this.screenshotInterval);
+      this.screenshotInterval = null;
+    }
     document.body.requestPointerLock();
     this.emitState();
   }
@@ -210,9 +235,101 @@ export class CameraSystem {
     this.renderer.render(this.scene, this.securityCamera);
   }
 
+  private captureScreenshots() {
+    if (this._activeCameras.length === 0) {
+      this._screenshots = [];
+      this.emitState();
+      return;
+    }
+
+    const currentRenderTarget = this.renderer.getRenderTarget();
+    const screenshots: string[] = [];
+
+    for (const cam of this._activeCameras) {
+      this.securityCamera.position.copy(cam.position);
+      this.securityCamera.rotation.copy(cam.rotation);
+      this.securityCamera.aspect = 16 / 9;
+      this.securityCamera.updateProjectionMatrix();
+
+      this.renderer.setRenderTarget(this.terminalScreenTarget);
+      this.renderer.render(this.scene, this.securityCamera);
+      this.renderer.setRenderTarget(null);
+
+      // Read pixels to canvas and get dataURL
+      const width = 256;
+      const height = 144;
+      const buffer = new Uint8Array(width * height * 4);
+      this.renderer.readRenderTargetPixels(this.terminalScreenTarget, 0, 0, width, height, buffer);
+
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d')!;
+      const imageData = ctx.createImageData(width, height);
+      // Flip vertically (WebGL reads bottom-to-top)
+      for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+          const srcIdx = ((height - 1 - y) * width + x) * 4;
+          const dstIdx = (y * width + x) * 4;
+          imageData.data[dstIdx] = buffer[srcIdx];
+          imageData.data[dstIdx + 1] = buffer[srcIdx + 1];
+          imageData.data[dstIdx + 2] = buffer[srcIdx + 2];
+          imageData.data[dstIdx + 3] = buffer[srcIdx + 3];
+        }
+      }
+      ctx.putImageData(imageData, 0, 0);
+      screenshots.push(canvas.toDataURL('image/jpeg', 0.6));
+    }
+
+    this.renderer.setRenderTarget(currentRenderTarget);
+    this._screenshots = screenshots;
+    this.emitState();
+  }
+
+  updateTerminalScreen(delta: number) {
+    this.terminalScreenElapsed += delta;
+    if (this.terminalScreenElapsed < 0.5) return;
+    this.terminalScreenElapsed = 0;
+
+    // Find the first camera linked to the active terminal's group
+    const groupId = this.activeTerminalGroupId;
+    if (groupId === null) return;
+    const linkedCams = this.cameras.filter(c => c.groupId === groupId);
+    if (linkedCams.length === 0) return;
+
+    const cam = linkedCams[0];
+    this.securityCamera.position.copy(cam.position);
+    this.securityCamera.rotation.copy(cam.rotation);
+    this.securityCamera.aspect = 256 / 144;
+    this.securityCamera.updateProjectionMatrix();
+
+    const currentRenderTarget = this.renderer.getRenderTarget();
+    this.renderer.setRenderTarget(this.terminalScreenTarget);
+    this.renderer.render(this.scene, this.securityCamera);
+    this.renderer.setRenderTarget(currentRenderTarget);
+
+    // Apply the texture to terminal screen meshes in the scene
+    const terminal = this.terminals.find(t => t.groupId === groupId);
+    if (terminal) {
+      terminal.mesh.traverse((child) => {
+        if (child instanceof THREE.Mesh) {
+          const mat = child.material as THREE.MeshStandardMaterial;
+          if (mat === undefined) return;
+          if (mat.emissive && mat.emissiveIntensity > 0.2 && mat.color.getHex() === 0x1a2a4a) {
+            mat.map = this.terminalScreenTarget.texture;
+            mat.needsUpdate = true;
+          }
+        }
+      });
+    }
+  }
+
   update(_delta: number, mainCamera: THREE.PerspectiveCamera) {
-    if (this._inTerminalMode && this._selectedCameraIndex !== null) {
-      this.renderFromCamera(mainCamera);
+    if (this._inTerminalMode) {
+      this.updateTerminalScreen(_delta);
+      if (this._selectedCameraIndex !== null) {
+        this.renderFromCamera(mainCamera);
+      }
     }
   }
 
@@ -223,6 +340,7 @@ export class CameraSystem {
         terminalHighlighted: this._terminalHighlighted,
         cameras: this._activeCameras,
         selectedCameraIndex: this._selectedCameraIndex,
+        screenshots: this._screenshots,
       });
     }
   }
@@ -249,6 +367,7 @@ export class CameraSystem {
       terminalHighlighted: this._terminalHighlighted,
       cameras: this._activeCameras,
       selectedCameraIndex: this._selectedCameraIndex,
+      screenshots: this._screenshots,
     };
   }
 }

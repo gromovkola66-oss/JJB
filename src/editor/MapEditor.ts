@@ -579,6 +579,24 @@ export class MapEditor {
     }
   }
 
+  updateSelectedGroupId(groupId: number) {
+    if (!this.selectedObject) return;
+    const data = this.placedObjectsData.find(d => d.id === this.selectedObject!.userData.editorId);
+    if (data) {
+      data.groupId = groupId;
+      this.onSelectionChanged?.({ ...data });
+    }
+  }
+
+  updateSelectedLabel(label: string) {
+    if (!this.selectedObject) return;
+    const data = this.placedObjectsData.find(d => d.id === this.selectedObject!.userData.editorId);
+    if (data) {
+      data.label = label;
+      this.onSelectionChanged?.({ ...data });
+    }
+  }
+
   scaleSelected(delta: number) {
     if (!this.selectedObject) return;
     const currentScale = this.selectedObject.scale.x;
