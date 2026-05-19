@@ -29,6 +29,7 @@ export class Combat {
   public weapon: Weapon | null = null;
   public hands: Hands;
   public droppedWeapons: THREE.Group[] = [];
+  private static readonly MAX_DROPPED_WEAPONS = 20;
   
   private hp = 100;
   private maxHp = 100;
@@ -44,6 +45,12 @@ export class Combat {
   
   // Auto-fire state
   private isFiring = false;
+  
+  // Bound event handler references (for cleanup in dispose)
+  private boundOnMouseDown: (e: MouseEvent) => void;
+  private boundOnMouseUp: (e: MouseEvent) => void;
+  private boundOnKeyDown: (e: KeyboardEvent) => void;
+  private boundOnPointerLockChange: () => void;
   
   // Callbacks
   public onStateChange?: (state: CombatState) => void;
@@ -64,6 +71,12 @@ export class Combat {
     this.scene = scene;
     this.hands = hands;
     this.team = options.team || 'prisoner';
+    
+    // Create bound handler references for later removal
+    this.boundOnMouseDown = this.onMouseDown.bind(this);
+    this.boundOnMouseUp = this.onMouseUp.bind(this);
+    this.boundOnKeyDown = this.onKeyDown.bind(this);
+    this.boundOnPointerLockChange = this.onPointerLockChange.bind(this);
     
     this.setupInput();
 
@@ -91,6 +104,9 @@ export class Combat {
   selectSlot(index: number) {
     if (this.isDead) return;
     if (index === this.activeSlot) return;
+
+    // Reset fire intent on slot switch to prevent auto-fire crossover
+    this.isFiring = false;
 
     if (index === 0) {
       // Switch to fists
@@ -137,10 +153,10 @@ export class Combat {
   }
 
   private setupInput() {
-    document.addEventListener('mousedown', this.onMouseDown.bind(this));
-    document.addEventListener('mouseup', this.onMouseUp.bind(this));
-    document.addEventListener('keydown', this.onKeyDown.bind(this));
-    document.addEventListener('pointerlockchange', this.onPointerLockChange.bind(this));
+    document.addEventListener('mousedown', this.boundOnMouseDown);
+    document.addEventListener('mouseup', this.boundOnMouseUp);
+    document.addEventListener('keydown', this.boundOnKeyDown);
+    document.addEventListener('pointerlockchange', this.boundOnPointerLockChange);
   }
 
   private onMouseDown(event: MouseEvent) {
@@ -278,40 +294,7 @@ export class Combat {
   }
 
   private createDroppedWeapon(position: THREE.Vector3) {
-    const weaponGroup = new THREE.Group();
-    
-    const metalMaterial = new THREE.MeshStandardMaterial({
-      color: 0x2a2a2a,
-      roughness: 0.4,
-      metalness: 0.8
-    });
-    
-    const woodMaterial = new THREE.MeshStandardMaterial({
-      color: 0x8b4513,
-      roughness: 0.8,
-      metalness: 0.1
-    });
-
-    // Упрощённая модель AK на земле
-    const body = new THREE.Mesh(
-      new THREE.BoxGeometry(0.1, 0.1, 0.8),
-      metalMaterial
-    );
-    weaponGroup.add(body);
-
-    const stock = new THREE.Mesh(
-      new THREE.BoxGeometry(0.08, 0.08, 0.3),
-      woodMaterial
-    );
-    stock.position.set(0, 0, 0.4);
-    weaponGroup.add(stock);
-
-    const magazine = new THREE.Mesh(
-      new THREE.BoxGeometry(0.06, 0.15, 0.1),
-      metalMaterial
-    );
-    magazine.position.set(0, -0.1, 0);
-    weaponGroup.add(magazine);
+    const weaponGroup = this.buildWeaponModel();
 
     weaponGroup.position.copy(position);
     weaponGroup.rotation.z = Math.PI / 2;
@@ -325,6 +308,7 @@ export class Combat {
     
     this.scene.add(weaponGroup);
     this.droppedWeapons.push(weaponGroup);
+    this.enforceDroppedWeaponCap();
   }
 
   private tryPickupWeapon() {
@@ -391,6 +375,23 @@ export class Combat {
   }
 
   private createDroppedWeaponWithPhysics(position: THREE.Vector3, velocity: THREE.Vector3) {
+    const weaponGroup = this.buildWeaponModel();
+
+    weaponGroup.position.copy(position);
+    weaponGroup.rotation.y = Math.random() * Math.PI;
+    
+    // Метаданные для идентификации and physics
+    weaponGroup.userData.isWeapon = true;
+    weaponGroup.userData.weaponType = 'AK-47';
+    weaponGroup.userData.velocity = velocity.clone();
+    weaponGroup.userData.grounded = false;
+    
+    this.scene.add(weaponGroup);
+    this.droppedWeapons.push(weaponGroup);
+    this.enforceDroppedWeaponCap();
+  }
+
+  private buildWeaponModel(): THREE.Group {
     const weaponGroup = new THREE.Group();
     
     const metalMaterial = new THREE.MeshStandardMaterial({
@@ -405,7 +406,6 @@ export class Combat {
       metalness: 0.1
     });
 
-    // Упрощённая модель AK на земле
     const body = new THREE.Mesh(
       new THREE.BoxGeometry(0.1, 0.1, 0.8),
       metalMaterial
@@ -426,17 +426,14 @@ export class Combat {
     magazine.position.set(0, -0.1, 0);
     weaponGroup.add(magazine);
 
-    weaponGroup.position.copy(position);
-    weaponGroup.rotation.y = Math.random() * Math.PI;
-    
-    // Метаданные для идентификации and physics
-    weaponGroup.userData.isWeapon = true;
-    weaponGroup.userData.weaponType = 'AK-47';
-    weaponGroup.userData.velocity = velocity.clone();
-    weaponGroup.userData.grounded = false;
-    
-    this.scene.add(weaponGroup);
-    this.droppedWeapons.push(weaponGroup);
+    return weaponGroup;
+  }
+
+  private enforceDroppedWeaponCap() {
+    while (this.droppedWeapons.length > Combat.MAX_DROPPED_WEAPONS) {
+      const oldest = this.droppedWeapons.shift()!;
+      this.scene.remove(oldest);
+    }
   }
 
   takeDamage(damage: number) {
@@ -455,6 +452,7 @@ export class Combat {
 
   private die() {
     this.isDead = true;
+    this.isFiring = false;
     if (this.onDeath) this.onDeath();
     
     // Выбрасываем оружие при смерти
@@ -551,6 +549,9 @@ export class Combat {
   }
 
   dispose() {
-    // Очистка обработчиков
+    document.removeEventListener('mousedown', this.boundOnMouseDown);
+    document.removeEventListener('mouseup', this.boundOnMouseUp);
+    document.removeEventListener('keydown', this.boundOnKeyDown);
+    document.removeEventListener('pointerlockchange', this.boundOnPointerLockChange);
   }
 }
