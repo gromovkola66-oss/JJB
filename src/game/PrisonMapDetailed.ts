@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { createConcreteNormalMap, createMetalNormalMap, createEnvironmentMap } from './ProceduralTextures';
 
 export interface CellDoorPosition {
   cellIndex: number;
@@ -8,6 +9,7 @@ export interface CellDoorPosition {
 export interface PrisonMapDetailedOptions {
   shadows?: boolean;
   shadowMapSize?: number;
+  renderer?: THREE.WebGLRenderer;
 }
 
 export class PrisonMapDetailed {
@@ -17,7 +19,7 @@ export class PrisonMapDetailed {
 
   // ОБЩИЕ МАТЕРИАЛЫ (переиспользуются!)
   private mats: Record<string, THREE.MeshStandardMaterial>;
-  private options: Required<PrisonMapDetailedOptions>;
+  private options: Required<Pick<PrisonMapDetailedOptions, 'shadows' | 'shadowMapSize'>>;
 
   constructor(options: PrisonMapDetailedOptions = {}) {
     this.group = new THREE.Group();
@@ -53,10 +55,35 @@ export class PrisonMapDetailed {
       ammo:       new THREE.MeshStandardMaterial({ color: 0x5a5a3a, roughness: 0.8 }),
       vest:       new THREE.MeshStandardMaterial({ color: 0x1e40af, roughness: 0.8 }),
       armoryWall: new THREE.MeshStandardMaterial({ color: 0x8a7a7a, roughness: 0.85 }),
-      glow:       new THREE.MeshStandardMaterial({ color: 0xffffee, emissive: 0xffffee, emissiveIntensity: 0.8 }),
+      glow:       new THREE.MeshStandardMaterial({ color: 0xffffee, emissive: 0xffffee, emissiveIntensity: 2.0 }),
     };
 
     this.buildMap();
+
+    // Apply procedural normal maps to materials
+    const concreteNormal = createConcreteNormalMap();
+    const metalNormal = createMetalNormalMap();
+
+    const concreteMats = ['concrete', 'concDark', 'floor', 'floorDark', 'floorRed', 'floorYard', 'armoryWall'];
+    for (const name of concreteMats) {
+      this.mats[name].normalMap = concreteNormal;
+      this.mats[name].normalScale = new THREE.Vector2(0.5, 0.5);
+    }
+
+    const metalMats = ['metal', 'metalLight', 'metalBlue', 'metalRust'];
+    for (const name of metalMats) {
+      this.mats[name].normalMap = metalNormal;
+      this.mats[name].normalScale = new THREE.Vector2(0.3, 0.3);
+    }
+
+    // Apply environment map to metal materials if renderer is provided
+    if (options.renderer) {
+      const envMap = createEnvironmentMap(options.renderer);
+      for (const name of metalMats) {
+        this.mats[name].envMap = envMap;
+        this.mats[name].envMapIntensity = 0.4;
+      }
+    }
   }
 
   // === ВСПОМОГАТЕЛЬНЫЕ ===
@@ -366,6 +393,24 @@ export class PrisonMapDetailed {
     const fill = new THREE.DirectionalLight(0xffffee, 0.25);
     fill.position.set(-20, 10, -10);
     this.group.add(fill);
+  }
+
+  dispose() {
+    // Dispose normal map textures (shared across materials)
+    const concreteNormal = this.mats['concrete'].normalMap;
+    if (concreteNormal) concreteNormal.dispose();
+
+    const metalNormal = this.mats['metal'].normalMap;
+    if (metalNormal) metalNormal.dispose();
+
+    // Dispose env map texture (shared across metal materials)
+    const envMap = this.mats['metal'].envMap;
+    if (envMap) envMap.dispose();
+
+    // Dispose all materials
+    for (const mat of Object.values(this.mats)) {
+      mat.dispose();
+    }
   }
 
   private optimizeShadows() {

@@ -1,4 +1,9 @@
 import * as THREE from 'three';
+import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
+import { SSAOPass } from 'three/examples/jsm/postprocessing/SSAOPass.js';
+import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
 import { PrisonMapDetailed as PrisonMap } from './PrisonMapDetailed';
 import { FirstPersonController } from './FirstPersonController';
 import { Hands } from './Hands';
@@ -7,6 +12,7 @@ import { TeamSystem, Team, PlayerInfo } from './TeamSystem';
 import { RoundSystem, RoundState } from './RoundSystem';
 import { DoorSystem, Door } from './DoorSystem';
 import { soundSystem } from './SoundSystem';
+import { DustParticles } from './DustParticles';
 
 export interface DoorInteractionState {
   canInteract: boolean;
@@ -17,12 +23,15 @@ export interface DoorInteractionState {
 export class Game {
   private scene: THREE.Scene;
   private renderer: THREE.WebGLRenderer;
+  private composer: EffectComposer;
+  private ssaoPass: SSAOPass;
 
   private prisonMap: PrisonMap;
   private controller: FirstPersonController;
   private hands: Hands;
   private combat: Combat;
   private doorSystem: DoorSystem;
+  private dustParticles: DustParticles;
   public teamSystem: TeamSystem;
   public roundSystem: RoundSystem;
 
@@ -57,6 +66,8 @@ export class Game {
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    this.renderer.toneMappingExposure = 1.0;
     container.appendChild(this.renderer.domElement);
 
     // Камера
@@ -71,9 +82,13 @@ export class Game {
     this.controller = new FirstPersonController(camera);
 
     // Карта
-    this.prisonMap = new PrisonMap();
+    this.prisonMap = new PrisonMap({ renderer: this.renderer });
     this.scene.add(this.prisonMap.group);
     this.controller.setColliders(this.prisonMap.colliders);
+
+    // Dust particles
+    this.dustParticles = new DustParticles();
+    this.scene.add(this.dustParticles.group);
 
     // Система дверей
     this.doorSystem = new DoorSystem(this.scene);
@@ -87,6 +102,25 @@ export class Game {
     this.hands = new Hands();
     camera.add(this.hands.group);
     this.scene.add(camera);
+
+    // Post-processing pipeline
+    this.composer = new EffectComposer(this.renderer);
+    this.composer.addPass(new RenderPass(this.scene, camera));
+
+    const ssaoPass = new SSAOPass(this.scene, camera, window.innerWidth, window.innerHeight);
+    ssaoPass.kernelRadius = 8;
+    ssaoPass.minDistance = 0.005;
+    ssaoPass.maxDistance = 0.1;
+    this.ssaoPass = ssaoPass;
+    this.composer.addPass(ssaoPass);
+
+    const bloomPass = new UnrealBloomPass(
+      new THREE.Vector2(window.innerWidth, window.innerHeight),
+      0.3, 0.4, 0.85
+    );
+    this.composer.addPass(bloomPass);
+
+    this.composer.addPass(new OutputPass());
 
     // Урон от падения и приземление
     this.controller.onFallDamage = (damage) => {
@@ -228,11 +262,16 @@ export class Game {
     this.controller.setPointerLockEnabled(enabled);
   }
 
+  setSSAOEnabled(enabled: boolean) {
+    this.ssaoPass.enabled = enabled;
+  }
+
   private onWindowResize() {
     const camera = this.controller.camera;
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
     this.renderer.setSize(window.innerWidth, window.innerHeight);
+    this.composer.setSize(window.innerWidth, window.innerHeight);
   }
 
   setOnStatsUpdate(callback: (fps: number, pos: THREE.Vector3) => void) {
@@ -317,6 +356,9 @@ export class Game {
     // Обновляем двери
     this.doorSystem.update(delta);
 
+    // Обновляем пылинки
+    this.dustParticles.update(delta);
+
     // Проверяем возможность взаимодействия с дверью
     if (this.onDoorInteraction) {
       const playerPos = this.controller.camera.position;
@@ -334,14 +376,17 @@ export class Game {
     }
 
     // Рендерим
-    this.renderer.render(this.scene, this.controller.camera);
+    this.composer.render(delta);
   }
 
   dispose() {
     this.stop();
+    this.composer.dispose();
     this.renderer.dispose();
     this.controller.dispose();
     this.combat.dispose();
+    this.dustParticles.dispose();
+    this.prisonMap.dispose();
     document.removeEventListener('keydown', this.onKeyDown.bind(this));
     window.removeEventListener('resize', this.onWindowResize.bind(this));
   }
