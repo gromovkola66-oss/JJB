@@ -45,7 +45,6 @@ export class CameraSystem {
 
   private terminalScreenTarget: THREE.WebGLRenderTarget;
   private terminalScreenElapsed = 0;
-  private activeTerminalGroupId: number | null = null;
 
   public onStateChange?: (state: CameraSystemState) => void;
 
@@ -173,7 +172,6 @@ export class CameraSystem {
 
     // Get cameras linked to this terminal via groupId
     this._activeCameras = this.cameras.filter(c => c.groupId === nearest!.groupId);
-    this.activeTerminalGroupId = nearest.groupId;
 
     this._inTerminalMode = true;
     this._selectedCameraIndex = null;
@@ -196,7 +194,6 @@ export class CameraSystem {
     this._selectedCameraIndex = null;
     this._activeCameras = [];
     this._screenshots = [];
-    this.activeTerminalGroupId = null;
     if (this.screenshotInterval !== null) {
       clearInterval(this.screenshotInterval);
       this.screenshotInterval = null;
@@ -291,26 +288,23 @@ export class CameraSystem {
     if (this.terminalScreenElapsed < 0.5) return;
     this.terminalScreenElapsed = 0;
 
-    // Find the first camera linked to the active terminal's group
-    const groupId = this.activeTerminalGroupId;
-    if (groupId === null) return;
-    const linkedCams = this.cameras.filter(c => c.groupId === groupId);
-    if (linkedCams.length === 0) return;
+    // Iterate ALL registered terminals and render the first linked camera's view onto each terminal's screen mesh
+    for (const terminal of this.terminals) {
+      const linkedCams = this.cameras.filter(c => c.groupId === terminal.groupId);
+      if (linkedCams.length === 0) continue;
 
-    const cam = linkedCams[0];
-    this.securityCamera.position.copy(cam.position);
-    this.securityCamera.rotation.copy(cam.rotation);
-    this.securityCamera.aspect = 256 / 144;
-    this.securityCamera.updateProjectionMatrix();
+      const cam = linkedCams[0];
+      this.securityCamera.position.copy(cam.position);
+      this.securityCamera.rotation.copy(cam.rotation);
+      this.securityCamera.aspect = 256 / 144;
+      this.securityCamera.updateProjectionMatrix();
 
-    const currentRenderTarget = this.renderer.getRenderTarget();
-    this.renderer.setRenderTarget(this.terminalScreenTarget);
-    this.renderer.render(this.scene, this.securityCamera);
-    this.renderer.setRenderTarget(currentRenderTarget);
+      const currentRenderTarget = this.renderer.getRenderTarget();
+      this.renderer.setRenderTarget(this.terminalScreenTarget);
+      this.renderer.render(this.scene, this.securityCamera);
+      this.renderer.setRenderTarget(currentRenderTarget);
 
-    // Apply the texture to terminal screen meshes in the scene
-    const terminal = this.terminals.find(t => t.groupId === groupId);
-    if (terminal) {
+      // Apply the texture to terminal screen meshes
       terminal.mesh.traverse((child) => {
         if (child instanceof THREE.Mesh) {
           const mat = child.material as THREE.MeshStandardMaterial;
@@ -324,12 +318,10 @@ export class CameraSystem {
     }
   }
 
-  update(_delta: number, mainCamera: THREE.PerspectiveCamera) {
-    if (this._inTerminalMode) {
-      this.updateTerminalScreen(_delta);
-      if (this._selectedCameraIndex !== null) {
-        this.renderFromCamera(mainCamera);
-      }
+  update(delta: number, mainCamera: THREE.PerspectiveCamera) {
+    this.updateTerminalScreen(delta);
+    if (this._inTerminalMode && this._selectedCameraIndex !== null) {
+      this.renderFromCamera(mainCamera);
     }
   }
 

@@ -454,9 +454,12 @@ export class Game {
       this.onStatsUpdate(this.currentFps, this.controller.camera.position);
     }
 
+    // Always update camera system (renders terminal screen textures)
+    this.cameraSystem.update(delta, this.controller.camera);
+
     // Render: either from security camera or normal
     if (this.inTerminalMode && this.cameraSystem.selectedCameraIndex !== null) {
-      this.cameraSystem.update(delta, this.controller.camera);
+      // renderFromCamera already called inside update() above
     } else {
       this.renderer.render(this.scene, this.controller.camera);
     }

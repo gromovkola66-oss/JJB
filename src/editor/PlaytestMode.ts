@@ -278,9 +278,12 @@ export class PlaytestMode {
 
     this.onStatsUpdate?.(this.currentFps, this.controller.camera.position);
 
+    // Always update camera system (renders terminal screen textures)
+    this.cameraSystem.update(delta, this.controller.camera);
+
     // Render
     if (this.inTerminalMode && this.cameraSystem.selectedCameraIndex !== null) {
-      this.cameraSystem.update(delta, this.controller.camera);
+      // renderFromCamera already called inside update() above
     } else {
       this.renderer.render(this.scene, this.controller.camera);
     }
