@@ -1,5 +1,7 @@
 import * as THREE from 'three';
 
+export type HandsTeam = 'guard' | 'prisoner';
+
 export class Hands {
   public group: THREE.Group;
   private leftArm: THREE.Group;
@@ -18,13 +20,17 @@ export class Hands {
   private readonly leftRest = new THREE.Vector3(-0.24, -0.2, -0.5);
   private readonly rightRest = new THREE.Vector3(0.24, -0.2, -0.5);
 
-  constructor() {
+  constructor(team: HandsTeam = 'prisoner') {
     this.group = new THREE.Group();
 
     const skin = new THREE.MeshStandardMaterial({ color: 0xd4a574, roughness: 0.75 });
     const skinD = new THREE.MeshStandardMaterial({ color: 0xc49464, roughness: 0.8 });
-    const sleeve = new THREE.MeshStandardMaterial({ color: 0xff6b35, roughness: 0.85 });
-    const sleeveD = new THREE.MeshStandardMaterial({ color: 0xe05a2a, roughness: 0.85 });
+
+    // Team-colored sleeves: blue for guards, orange for prisoners
+    const sleeveColor = team === 'guard' ? 0x1e3a6e : 0xff6b35;
+    const sleeveDColor = team === 'guard' ? 0x162e58 : 0xe05a2a;
+    const sleeve = new THREE.MeshStandardMaterial({ color: sleeveColor, roughness: 0.85 });
+    const sleeveD = new THREE.MeshStandardMaterial({ color: sleeveDColor, roughness: 0.85 });
 
     this.leftArm = this.buildArm(true, skin, skinD, sleeve, sleeveD);
     this.rightArm = this.buildArm(false, skin, skinD, sleeve, sleeveD);

@@ -65,6 +65,7 @@ const GameApp = ({ onBackToMenu }: GameAppProps) => {
   
   const [guardCount, setGuardCount] = useState(1);
   const [prisonerCount, setPrisonerCount] = useState(4);
+  const [activeSlot, setActiveSlot] = useState(0);
 
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
     if (e.code === 'KeyM' && currentTeam === 'guard') {
@@ -104,6 +105,7 @@ const GameApp = ({ onBackToMenu }: GameAppProps) => {
 
     game.setOnCombatUpdate((state) => {
       setCombatState({ ...state });
+      setActiveSlot(state.activeSlot);
     });
 
     game.setOnRoundUpdate((state) => {
@@ -112,6 +114,10 @@ const GameApp = ({ onBackToMenu }: GameAppProps) => {
 
     game.setOnDoorInteraction((state) => {
       setDoorState(state);
+    });
+
+    game.setOnSlotChanged((slot) => {
+      setActiveSlot(slot);
     });
 
     const handlePointerLockChange = () => {
@@ -170,6 +176,15 @@ const GameApp = ({ onBackToMenu }: GameAppProps) => {
     setCellsOpen(!cellsOpen);
   };
 
+  const handleSlotSelect = (index: number) => {
+    if (!gameRef.current) return;
+    gameRef.current.selectSlot(index);
+    // Close guard menu if open when selecting a slot
+    if (guardMenuOpen) {
+      setGuardMenuOpen(false);
+    }
+  };
+
   return (
     <div className="w-screen h-screen overflow-hidden bg-black">
       <div ref={containerRef} className="w-full h-full" />
@@ -208,6 +223,8 @@ const GameApp = ({ onBackToMenu }: GameAppProps) => {
           doorState={doorState}
           isWarden={isWarden}
           guardMenuOpen={guardMenuOpen}
+          activeSlot={activeSlot}
+          onSlotSelect={handleSlotSelect}
         />
       )}
     </div>
