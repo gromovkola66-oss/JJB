@@ -268,6 +268,12 @@ export class MapEditor {
       position: { x: obj.position.x, y: obj.position.y, z: obj.position.z },
       rotation: this.currentRotation,
     };
+    if (this.selectedObjectType.id === 'terminal' || this.selectedObjectType.id === 'camera') {
+      data.groupId = 1;
+    }
+    if (this.selectedObjectType.id === 'camera') {
+      data.label = '';
+    }
     this.placedObjectsData.push(data);
     this.pushHistory({ action: 'place', data: { ...data } });
     this.onObjectPlaced?.(this.placedObjectsData.length);

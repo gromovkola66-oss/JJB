@@ -2235,9 +2235,11 @@ export const EDITOR_OBJECTS: EditorObjectType[] = [
       // Top surface
       g.add(pos(box(1.02, 0.03, 0.52, M.metalMid), 0, 0.71, 0));
       // Monitor screen (bigger, angled slightly back)
-      const screen = box(0.7, 0.42, 0.03, M.screenGlow);
+      const screenMat = new THREE.MeshStandardMaterial({ color: 0x1a2a4a, roughness: 0.1, metalness: 0.3, emissive: 0x0a1a3a, emissiveIntensity: 0.3 });
+      const screen = box(0.7, 0.42, 0.03, screenMat);
       screen.position.set(0, 1.1, -0.12);
       screen.rotation.x = -0.12;
+      screen.userData.isTerminalScreen = true;
       g.add(screen);
       // Monitor bezel (frame)
       const frame = box(0.76, 0.48, 0.02, M.metalDark);

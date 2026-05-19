@@ -161,8 +161,8 @@ export class CameraSystem {
           originalEmissive: mat.emissive.clone(),
           originalEmissiveIntensity: mat.emissiveIntensity,
         });
-        mat.emissive.set(0x00ffaa);
-        mat.emissiveIntensity = 0.08;
+        mat.emissive.set(0x44ffaa);
+        mat.emissiveIntensity = 0.01;
       }
     });
   }
@@ -344,13 +344,11 @@ export class CameraSystem {
 
       // Apply the per-terminal DataTexture to terminal screen meshes
       terminal.mesh.traverse((child) => {
-        if (child instanceof THREE.Mesh) {
+        if (child instanceof THREE.Mesh && child.userData.isTerminalScreen) {
           const mat = child.material as THREE.MeshStandardMaterial;
           if (mat === undefined) return;
-          if (mat.emissive && mat.emissiveIntensity > 0.2 && mat.color.getHex() === 0x1a2a4a) {
-            mat.map = dataTexture!;
-            mat.needsUpdate = true;
-          }
+          mat.map = dataTexture!;
+          mat.needsUpdate = true;
         }
       });
     }

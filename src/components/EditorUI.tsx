@@ -153,25 +153,34 @@ export const EditorUI = ({
             </div>
             {(selectedObject.type === 'terminal' || selectedObject.type === 'camera') && (
               <div className="mt-3 space-y-2 bg-black/20 rounded-lg p-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-gray-400 text-sm">Group ID</span>
-                  <input
-                    type="number"
-                    value={selectedObject.groupId ?? 1}
-                    onChange={(e) => onUpdateGroupId?.(parseInt(e.target.value) || 1)}
-                    className="w-20 bg-gray-700 text-white text-sm rounded px-2 py-1 border border-gray-600 focus:outline-none focus:border-blue-500"
-                  />
+                <div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-400 text-sm">ID Терминала</span>
+                    <input
+                      type="number"
+                      value={selectedObject.groupId ?? 1}
+                      onChange={(e) => onUpdateGroupId?.(parseInt(e.target.value) || 1)}
+                      className="w-20 bg-gray-700 text-white text-sm rounded px-2 py-1 border border-gray-600 focus:outline-none focus:border-blue-500"
+                    />
+                  </div>
+                  <p className="text-gray-500 text-xs mt-1">
+                    {selectedObject.type === 'terminal'
+                      ? 'Камеры с таким же ID будут подключены'
+                      : 'К какому терминалу подключить (можно несколько камер с одним ID)'}
+                  </p>
                 </div>
                 {selectedObject.type === 'camera' && (
-                  <div className="flex items-center justify-between">
-                    <span className="text-gray-400 text-sm">Label</span>
-                    <input
-                      type="text"
-                      value={selectedObject.label ?? ''}
-                      onChange={(e) => onUpdateLabel?.(e.target.value)}
-                      className="w-32 bg-gray-700 text-white text-sm rounded px-2 py-1 border border-gray-600 focus:outline-none focus:border-blue-500"
-                      placeholder="Camera name"
-                    />
+                  <div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-gray-400 text-sm">Название камеры</span>
+                      <input
+                        type="text"
+                        value={selectedObject.label ?? ''}
+                        onChange={(e) => onUpdateLabel?.(e.target.value)}
+                        className="w-32 bg-gray-700 text-white text-sm rounded px-2 py-1 border border-gray-600 focus:outline-none focus:border-blue-500"
+                        placeholder="Камера 1"
+                      />
+                    </div>
                   </div>
                 )}
               </div>
