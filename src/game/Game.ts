@@ -45,6 +45,9 @@ export class Game {
   private footstepTimer = 0;
   private readonly FOOTSTEP_INTERVAL = 0.4; // секунды между шагами
 
+  private boundKeyDown = this.onKeyDown.bind(this);
+  private boundWindowResize = this.onWindowResize.bind(this);
+
   constructor(container: HTMLElement) {
     // Создаём сцену
     this.scene = new THREE.Scene();
@@ -138,10 +141,10 @@ export class Game {
     };
 
     // Обработка нажатия E для дверей
-    document.addEventListener('keydown', this.onKeyDown.bind(this));
+    document.addEventListener('keydown', this.boundKeyDown);
 
     // Обработка изменения размера окна
-    window.addEventListener('resize', this.onWindowResize.bind(this));
+    window.addEventListener('resize', this.boundWindowResize);
   }
 
   private onKeyDown(event: KeyboardEvent) {
@@ -342,7 +345,7 @@ export class Game {
     this.renderer.dispose();
     this.controller.dispose();
     this.combat.dispose();
-    document.removeEventListener('keydown', this.onKeyDown.bind(this));
-    window.removeEventListener('resize', this.onWindowResize.bind(this));
+    document.removeEventListener('keydown', this.boundKeyDown);
+    window.removeEventListener('resize', this.boundWindowResize);
   }
 }

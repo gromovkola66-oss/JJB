@@ -46,7 +46,8 @@ export class Combat {
   public onDeath?: () => void;
   public onCameraRecoil?: (amount: number) => void;
   
-  
+  private boundMouseDown = this.onMouseDown.bind(this);
+  private boundKeyDown = this.onKeyDown.bind(this);
 
   constructor(
     camera: THREE.Camera,
@@ -95,8 +96,8 @@ export class Combat {
   }
 
   private setupInput() {
-    document.addEventListener('mousedown', this.onMouseDown.bind(this));
-    document.addEventListener('keydown', this.onKeyDown.bind(this));
+    document.addEventListener('mousedown', this.boundMouseDown);
+    document.addEventListener('keydown', this.boundKeyDown);
   }
 
   private onMouseDown(event: MouseEvent) {
@@ -401,6 +402,7 @@ export class Combat {
   }
 
   dispose() {
-    // Очистка обработчиков
+    document.removeEventListener('mousedown', this.boundMouseDown);
+    document.removeEventListener('keydown', this.boundKeyDown);
   }
 }

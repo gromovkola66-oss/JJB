@@ -11,10 +11,8 @@ import { Team } from './game/TeamSystem';
 import { RoundState } from './game/RoundSystem';
 import { soundSystem } from './game/SoundSystem';
 import { EditorApp } from './EditorApp';
-import { ModelEditorApp } from './ModelEditorApp';
-import { AnimEditorApp } from './AnimEditorApp';
 
-type AppMode = 'menu' | 'game' | 'editor' | 'modelEditor' | 'animEditor';
+type AppMode = 'menu' | 'game' | 'editor';
 
 function App() {
   const [appMode, setAppMode] = useState<AppMode>('menu');
@@ -23,16 +21,8 @@ function App() {
     return <EditorApp onBackToGame={() => setAppMode('menu')} />;
   }
 
-  if (appMode === 'modelEditor') {
-    return <ModelEditorApp onBack={() => setAppMode('menu')} />;
-  }
-
-  if (appMode === 'animEditor') {
-    return <AnimEditorApp onBack={() => setAppMode('menu')} />;
-  }
-
   if (appMode === 'menu') {
-    return <MainMenu onStartGame={() => setAppMode('game')} onOpenEditor={() => setAppMode('editor')} onOpenModelEditor={() => setAppMode('modelEditor')} onOpenAnimEditor={() => setAppMode('animEditor')} />;
+    return <MainMenu onStartGame={() => setAppMode('game')} onOpenEditor={() => setAppMode('editor')} />;
   }
 
   return <GameApp onBackToMenu={() => setAppMode('menu')} />;
