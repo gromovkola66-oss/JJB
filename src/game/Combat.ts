@@ -42,6 +42,9 @@ export class Combat {
   private punchRange = 2;
   private punchCooldownTime = 0.5; // секунды между ударами
   
+  // Auto-fire state
+  private isFiring = false;
+  
   // Callbacks
   public onStateChange?: (state: CombatState) => void;
   public onHit?: (damage: number) => void;
@@ -135,18 +138,33 @@ export class Combat {
 
   private setupInput() {
     document.addEventListener('mousedown', this.onMouseDown.bind(this));
+    document.addEventListener('mouseup', this.onMouseUp.bind(this));
     document.addEventListener('keydown', this.onKeyDown.bind(this));
+    document.addEventListener('pointerlockchange', this.onPointerLockChange.bind(this));
   }
 
   private onMouseDown(event: MouseEvent) {
     if (document.pointerLockElement === null) return;
     
     if (event.button === 0) { // ЛКМ
+      this.isFiring = true;
       if (this.activeSlot === 1 && this.weapon) {
         this.shoot();
       } else {
         this.punch();
       }
+    }
+  }
+
+  private onMouseUp(event: MouseEvent) {
+    if (event.button === 0) {
+      this.isFiring = false;
+    }
+  }
+
+  private onPointerLockChange() {
+    if (document.pointerLockElement === null) {
+      this.isFiring = false;
     }
   }
 
@@ -302,6 +320,8 @@ export class Combat {
     // Метаданные для идентификации
     weaponGroup.userData.isWeapon = true;
     weaponGroup.userData.weaponType = 'AK-47';
+    weaponGroup.userData.velocity = new THREE.Vector3(0, 0, 0);
+    weaponGroup.userData.grounded = true;
     
     this.scene.add(weaponGroup);
     this.droppedWeapons.push(weaponGroup);
@@ -345,17 +365,17 @@ export class Combat {
     // Убираем оружие из камеры
     this.camera.remove(this.weapon.group);
     
-    // Создаём выброшенное оружие перед игроком
+    // Создаём выброшенное оружие перед игроком с physics
     const dropDirection = new THREE.Vector3();
     this.camera.getWorldDirection(dropDirection);
-    dropDirection.y = 0;
-    dropDirection.normalize();
     
     const dropPosition = this.camera.position.clone()
-      .add(dropDirection.multiplyScalar(1.5));
-    dropPosition.y = 0.5;
+      .add(dropDirection.clone().multiplyScalar(0.5));
     
-    this.createDroppedWeapon(dropPosition);
+    this.createDroppedWeaponWithPhysics(
+      dropPosition,
+      dropDirection.clone().multiplyScalar(3).add(new THREE.Vector3(0, 2, 0))
+    );
     
     this.weapon = null;
     
@@ -368,6 +388,55 @@ export class Combat {
     
     this.notifyStateChange();
     this.onSlotChanged?.(this.activeSlot);
+  }
+
+  private createDroppedWeaponWithPhysics(position: THREE.Vector3, velocity: THREE.Vector3) {
+    const weaponGroup = new THREE.Group();
+    
+    const metalMaterial = new THREE.MeshStandardMaterial({
+      color: 0x2a2a2a,
+      roughness: 0.4,
+      metalness: 0.8
+    });
+    
+    const woodMaterial = new THREE.MeshStandardMaterial({
+      color: 0x8b4513,
+      roughness: 0.8,
+      metalness: 0.1
+    });
+
+    // Упрощённая модель AK на земле
+    const body = new THREE.Mesh(
+      new THREE.BoxGeometry(0.1, 0.1, 0.8),
+      metalMaterial
+    );
+    weaponGroup.add(body);
+
+    const stock = new THREE.Mesh(
+      new THREE.BoxGeometry(0.08, 0.08, 0.3),
+      woodMaterial
+    );
+    stock.position.set(0, 0, 0.4);
+    weaponGroup.add(stock);
+
+    const magazine = new THREE.Mesh(
+      new THREE.BoxGeometry(0.06, 0.15, 0.1),
+      metalMaterial
+    );
+    magazine.position.set(0, -0.1, 0);
+    weaponGroup.add(magazine);
+
+    weaponGroup.position.copy(position);
+    weaponGroup.rotation.y = Math.random() * Math.PI;
+    
+    // Метаданные для идентификации and physics
+    weaponGroup.userData.isWeapon = true;
+    weaponGroup.userData.weaponType = 'AK-47';
+    weaponGroup.userData.velocity = velocity.clone();
+    weaponGroup.userData.grounded = false;
+    
+    this.scene.add(weaponGroup);
+    this.droppedWeapons.push(weaponGroup);
   }
 
   takeDamage(damage: number) {
@@ -431,6 +500,11 @@ export class Combat {
       this.punchCooldown -= delta;
     }
     
+    // Auto-fire: continuously shoot while holding mouse button
+    if (this.isFiring && this.activeSlot === 1 && this.weapon) {
+      this.shoot();
+    }
+    
     // Обновляем оружие
     if (this.weapon) {
       const wasReloading = this.weapon.isCurrentlyReloading();
@@ -442,11 +516,37 @@ export class Combat {
       }
     }
     
-    // Вращение выброшенного оружия (для визуала)
+    // Physics for dropped weapons
     for (const dropped of this.droppedWeapons) {
-      dropped.rotation.y += delta * 0.5;
-      // Небольшое покачивание
-      dropped.position.y = 0.5 + Math.sin(performance.now() * 0.002) * 0.05;
+      if (dropped.userData.grounded) continue;
+      
+      const vel = dropped.userData.velocity as THREE.Vector3;
+      if (!vel) continue;
+      
+      // Apply gravity
+      vel.y -= 15 * delta;
+      
+      // Move
+      dropped.position.add(vel.clone().multiplyScalar(delta));
+      
+      // Rotate while in air
+      dropped.rotation.x += delta * vel.length() * 2;
+      
+      // Floor collision (y=0.15 is floor level for the weapon model)
+      if (dropped.position.y <= 0.15) {
+        dropped.position.y = 0.15;
+        if (Math.abs(vel.y) > 1) {
+          vel.y = -vel.y * 0.3; // Bounce with damping
+          vel.x *= 0.7;
+          vel.z *= 0.7;
+        } else {
+          vel.set(0, 0, 0);
+          dropped.userData.grounded = true;
+          // Lay flat on ground
+          dropped.rotation.x = 0;
+          dropped.rotation.z = Math.PI / 2;
+        }
+      }
     }
   }
 
