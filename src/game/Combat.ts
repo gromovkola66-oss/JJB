@@ -11,6 +11,7 @@ export interface CombatState {
   maxAmmo: number;
   isDead: boolean;
   isReloading: boolean;
+  activeSlot: number;
 }
 
 export type CombatTeam = 'guard' | 'prisoner';
@@ -32,6 +33,7 @@ export class Combat {
   private hp = 100;
   private maxHp = 100;
   private isDead = false;
+  private activeSlot = 0; // 0=fists, 1=weapon
   
   // Состояние атаки
   private isPunching = false;
@@ -45,6 +47,7 @@ export class Combat {
   public onHit?: (damage: number) => void;
   public onDeath?: () => void;
   public onCameraRecoil?: (amount: number) => void;
+  public onSlotChanged?: (slot: number) => void;
   
   
 
@@ -76,7 +79,41 @@ export class Combat {
     this.weapon = new Weapon(this.team);
     this.camera.add(this.weapon.group);
     this.hands.setVisible(false);
+    this.activeSlot = 1;
     this.notifyStateChange();
+    this.onSlotChanged?.(this.activeSlot);
+  }
+
+  // Select inventory slot: 0=fists, 1=weapon
+  selectSlot(index: number) {
+    if (this.isDead) return;
+    if (index === this.activeSlot) return;
+
+    if (index === 0) {
+      // Switch to fists
+      if (this.weapon) {
+        this.camera.remove(this.weapon.group);
+      }
+      this.hands.setVisible(true);
+      this.activeSlot = 0;
+    } else if (index === 1) {
+      // Switch to weapon (only if player has one)
+      if (this.weapon) {
+        this.hands.setVisible(false);
+        this.camera.add(this.weapon.group);
+        this.activeSlot = 1;
+      } else {
+        // No weapon available, stay on fists
+        return;
+      }
+    }
+
+    this.notifyStateChange();
+    this.onSlotChanged?.(this.activeSlot);
+  }
+
+  getActiveSlot(): number {
+    return this.activeSlot;
   }
 
   // Создать подбираемое оружие в указанной позиции
@@ -91,7 +128,9 @@ export class Combat {
     this.camera.remove(this.weapon.group);
     this.weapon = null;
     this.hands.setVisible(true);
+    this.activeSlot = 0;
     this.notifyStateChange();
+    this.onSlotChanged?.(this.activeSlot);
   }
 
   private setupInput() {
@@ -103,7 +142,7 @@ export class Combat {
     if (document.pointerLockElement === null) return;
     
     if (event.button === 0) { // ЛКМ
-      if (this.weapon) {
+      if (this.activeSlot === 1 && this.weapon) {
         this.shoot();
       } else {
         this.punch();
@@ -127,6 +166,12 @@ export class Combat {
           soundSystem.playReload();
           this.notifyStateChange();
         }
+        break;
+      case 'Digit1':
+        this.selectSlot(0);
+        break;
+      case 'Digit2':
+        this.selectSlot(1);
         break;
     }
   }
@@ -280,13 +325,15 @@ export class Combat {
         this.weapon = new Weapon(this.team);
         this.camera.add(this.weapon.group);
         
-        // Скрываем руки
+        // Скрываем руки и switch to weapon slot
         this.hands.setVisible(false);
+        this.activeSlot = 1;
         
         // Звук подбора
         soundSystem.playPickup();
         
         this.notifyStateChange();
+        this.onSlotChanged?.(this.activeSlot);
         return;
       }
     }
@@ -312,13 +359,15 @@ export class Combat {
     
     this.weapon = null;
     
-    // Показываем руки
+    // Показываем руки and switch to fists slot
     this.hands.setVisible(true);
+    this.activeSlot = 0;
     
     // Звук выброса
     soundSystem.playDrop();
     
     this.notifyStateChange();
+    this.onSlotChanged?.(this.activeSlot);
   }
 
   takeDamage(damage: number) {
@@ -371,7 +420,8 @@ export class Combat {
       ammo: this.weapon?.stats.currentAmmo ?? 0,
       maxAmmo: this.weapon?.stats.maxAmmo ?? 0,
       isDead: this.isDead,
-      isReloading: this.weapon?.isCurrentlyReloading() ?? false
+      isReloading: this.weapon?.isCurrentlyReloading() ?? false,
+      activeSlot: this.activeSlot
     };
   }
 
