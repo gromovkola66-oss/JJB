@@ -289,7 +289,7 @@ export class Combat {
   }
 
   private tryPickupWeapon() {
-    if (this.weapon || this.isDead) return;
+    if (this.weapon || this.storedWeapon || this.isDead) return;
     
     const playerPos = this.camera.position;
     const pickupRange = 2;
@@ -320,7 +320,15 @@ export class Combat {
   }
 
   private dropWeapon() {
-    if (!this.weapon || this.isDead) return;
+    if (this.isDead) return;
+
+    // If weapon is holstered, take it out first so we can drop it
+    if (!this.weapon && this.storedWeapon) {
+      this.weapon = this.storedWeapon;
+      this.storedWeapon = null;
+    }
+
+    if (!this.weapon) return;
     
     // Убираем оружие из камеры
     this.camera.remove(this.weapon.group);
@@ -367,8 +375,8 @@ export class Combat {
     this.isDead = true;
     if (this.onDeath) this.onDeath();
     
-    // Выбрасываем оружие при смерти
-    if (this.weapon) {
+    // Выбрасываем оружие при смерти (check storedWeapon too)
+    if (this.weapon || this.storedWeapon) {
       this.dropWeapon();
     }
   }

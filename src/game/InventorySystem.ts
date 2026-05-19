@@ -78,6 +78,7 @@ export class InventorySystem {
 
   equipSlot(index: number) {
     if (index < 0 || index >= this.slots.length) return;
+    if (index === this.equippedSlot) return;
     this.equippedSlot = index;
     this.onEquip?.(this.slots[index], index);
     this.notifyStateChange();
@@ -99,6 +100,16 @@ export class InventorySystem {
 
   getIsOpen(): boolean {
     return this.isOpen;
+  }
+
+  reset() {
+    this.slots = [FISTS_ITEM, null, null, null, null, null];
+    this.equippedSlot = 0;
+    if (this.isOpen) {
+      this.isOpen = false;
+      this.hoveredSlot = null;
+    }
+    this.notifyStateChange();
   }
 
   private notifyStateChange() {

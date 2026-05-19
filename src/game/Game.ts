@@ -256,10 +256,13 @@ export class Game {
       this.inventory.removeItem('weapon_ak47');
     };
 
+    // Reset inventory on team switch
+    this.inventory.reset();
+
     // Телепортируем
     camera.position.copy(info.spawnPoint);
 
-    // Если охрана — даём оружие
+    // Если охрана — даём оружие и add to inventory
     if (info.team === 'guard') {
       this.combat.giveWeapon();
     }
