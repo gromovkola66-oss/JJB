@@ -1196,6 +1196,364 @@ export const EDITOR_OBJECTS: EditorObjectType[] = [
     }
   },
 
+  // --- Скамья для жима ---
+  {
+    id: 'weight_bench', name: 'Скамья для жима', icon: '🏋️', category: 'items',
+    create: () => {
+      const g = new THREE.Group();
+      // Frame legs
+      g.add(pos(box(0.06, 0.45, 0.06, M.metalDark), -0.5, 0.225, -0.3));
+      g.add(pos(box(0.06, 0.45, 0.06, M.metalDark), -0.5, 0.225, 0.3));
+      g.add(pos(box(0.06, 0.45, 0.06, M.metalDark), 0.5, 0.225, -0.3));
+      g.add(pos(box(0.06, 0.45, 0.06, M.metalDark), 0.5, 0.225, 0.3));
+      // Cross supports
+      g.add(pos(box(1.0, 0.04, 0.04, M.metalMid), 0, 0.12, -0.3));
+      g.add(pos(box(1.0, 0.04, 0.04, M.metalMid), 0, 0.12, 0.3));
+      // Padded seat
+      g.add(pos(box(0.9, 0.08, 0.35, M.mattress), 0, 0.5, 0));
+      // Stitch lines on seat
+      g.add(pos(box(0.85, 0.005, 0.02, M.mattStripe), 0, 0.545, -0.1));
+      g.add(pos(box(0.85, 0.005, 0.02, M.mattStripe), 0, 0.545, 0.1));
+      // Rack uprights
+      g.add(pos(cyl(0.03, 0.03, 0.7, M.metalDark), -0.5, 0.8, 0));
+      g.add(pos(cyl(0.03, 0.03, 0.7, M.metalDark), 0.5, 0.8, 0));
+      // Barbell bar
+      g.add(pos(cyl(0.02, 0.02, 1.6, M.chrome), 0, 1.1, 0));
+      // Weight plates
+      g.add(pos(cyl(0.12, 0.12, 0.04, M.metalDark, 16), -0.7, 1.1, 0));
+      g.add(pos(cyl(0.13, 0.13, 0.02, M.metalMid, 16), -0.72, 1.1, 0));
+      g.add(pos(cyl(0.12, 0.12, 0.04, M.metalDark, 16), 0.7, 1.1, 0));
+      g.add(pos(cyl(0.13, 0.13, 0.02, M.metalMid, 16), 0.72, 1.1, 0));
+      // Rubber feet
+      g.add(pos(box(0.08, 0.02, 0.08, M.rubberFloor), -0.5, 0.01, -0.3));
+      g.add(pos(box(0.08, 0.02, 0.08, M.rubberFloor), -0.5, 0.01, 0.3));
+      g.add(pos(box(0.08, 0.02, 0.08, M.rubberFloor), 0.5, 0.01, -0.3));
+      g.add(pos(box(0.08, 0.02, 0.08, M.rubberFloor), 0.5, 0.01, 0.3));
+      return g;
+    }
+  },
+  // --- Турник ---
+  {
+    id: 'pullup_bar', name: 'Турник', icon: '💪', category: 'items',
+    create: () => {
+      const g = new THREE.Group();
+      // Wall mounting plates
+      g.add(pos(box(0.15, 0.15, 0.03, M.metalDark), -0.5, 2.2, 0));
+      g.add(pos(box(0.15, 0.15, 0.03, M.metalDark), 0.5, 2.2, 0));
+      // Support arms from wall
+      g.add(pos(box(0.06, 0.06, 0.3, M.metalMid), -0.5, 2.2, 0.15));
+      g.add(pos(box(0.06, 0.06, 0.3, M.metalMid), 0.5, 2.2, 0.15));
+      // Horizontal bar
+      g.add(pos(cyl(0.025, 0.025, 1.1, M.chrome), 0, 2.2, 0.3));
+      // Grip texture - alternating segments
+      for (let i = -4; i <= 4; i++) {
+        const mat = i % 2 === 0 ? M.rubberFloor : M.metalMid;
+        g.add(pos(cyl(0.028, 0.028, 0.05, mat), i * 0.1, 2.2, 0.3));
+      }
+      // Mounting bolts
+      g.add(pos(cyl(0.015, 0.015, 0.04, M.metalShiny, 8), -0.5, 2.26, 0.01));
+      g.add(pos(cyl(0.015, 0.015, 0.04, M.metalShiny, 8), -0.5, 2.14, 0.01));
+      g.add(pos(cyl(0.015, 0.015, 0.04, M.metalShiny, 8), 0.5, 2.26, 0.01));
+      g.add(pos(cyl(0.015, 0.015, 0.04, M.metalShiny, 8), 0.5, 2.14, 0.01));
+      return g;
+    }
+  },
+  // --- Поднос с едой ---
+  {
+    id: 'food_tray', name: 'Поднос с едой', icon: '🍽️', category: 'items',
+    create: () => {
+      const g = new THREE.Group();
+      // Tray base
+      g.add(pos(box(0.4, 0.02, 0.3, M.metalLight), 0, 0.9, 0));
+      // Raised rim edges
+      g.add(pos(box(0.4, 0.025, 0.015, M.metalMid), 0, 0.93, 0.14));
+      g.add(pos(box(0.4, 0.025, 0.015, M.metalMid), 0, 0.93, -0.14));
+      g.add(pos(box(0.015, 0.025, 0.3, M.metalMid), 0.19, 0.93, 0));
+      g.add(pos(box(0.015, 0.025, 0.3, M.metalMid), -0.19, 0.93, 0));
+      // Compartment dividers
+      g.add(pos(box(0.005, 0.02, 0.25, M.metalMid), 0.06, 0.92, 0));
+      g.add(pos(box(0.2, 0.02, 0.005, M.metalMid), -0.06, 0.92, 0.04));
+      // Food items - carrots
+      g.add(pos(box(0.06, 0.03, 0.04, M.orangePaint), -0.1, 0.94, 0.09));
+      // Greens
+      g.add(pos(box(0.08, 0.025, 0.06, M.greenPaint), -0.1, 0.94, -0.06));
+      // Bread
+      g.add(pos(box(0.07, 0.04, 0.05, M.woodLight), 0.13, 0.94, 0.06));
+      // Rice
+      g.add(pos(box(0.08, 0.03, 0.07, M.porcBase), 0.13, 0.94, -0.05));
+      return g;
+    }
+  },
+  // --- Наручники на стене ---
+  {
+    id: 'handcuffs_wall', name: 'Наручники на стене', icon: '⛓️', category: 'items',
+    create: () => {
+      const g = new THREE.Group();
+      // Wall bracket/hook
+      g.add(pos(box(0.1, 0.06, 0.04, M.metalDark), 0, 1.5, 0));
+      g.add(pos(box(0.03, 0.1, 0.04, M.metalDark), 0, 1.45, 0));
+      // First cuff ring (approximated with small boxes)
+      g.add(pos(box(0.08, 0.01, 0.08, M.chrome), -0.06, 1.32, 0));
+      g.add(pos(box(0.08, 0.01, 0.08, M.chrome), -0.06, 1.24, 0));
+      g.add(pos(box(0.01, 0.08, 0.08, M.chrome), -0.025, 1.28, 0));
+      g.add(pos(box(0.01, 0.08, 0.08, M.chrome), -0.095, 1.28, 0));
+      // Second cuff ring
+      g.add(pos(box(0.08, 0.01, 0.08, M.chrome), 0.06, 1.32, 0));
+      g.add(pos(box(0.08, 0.01, 0.08, M.chrome), 0.06, 1.24, 0));
+      g.add(pos(box(0.01, 0.08, 0.08, M.chrome), 0.025, 1.28, 0));
+      g.add(pos(box(0.01, 0.08, 0.08, M.chrome), 0.095, 1.28, 0));
+      // Chain links between
+      g.add(pos(box(0.04, 0.015, 0.02, M.chainMetal), 0, 1.34, 0));
+      g.add(pos(box(0.02, 0.015, 0.02, M.chainMetal), 0, 1.36, 0));
+      // Keyhole detail
+      g.add(pos(cyl(0.008, 0.008, 0.02, M.metalDark, 6), -0.06, 1.28, 0.04));
+      // Mounting screws
+      g.add(pos(cyl(0.012, 0.012, 0.02, M.metalShiny, 6), -0.03, 1.52, 0.02));
+      g.add(pos(cyl(0.012, 0.012, 0.02, M.metalShiny, 6), 0.03, 1.52, 0.02));
+      return g;
+    }
+  },
+  // --- Пожарная сигнализация ---
+  {
+    id: 'fire_alarm', name: 'Пожарная сигнализация', icon: '🚨', category: 'items',
+    create: () => {
+      const g = new THREE.Group();
+      // Mounting plate behind
+      g.add(pos(box(0.18, 0.24, 0.02, M.metalDark), 0, 1.4, 0));
+      // Red box housing
+      g.add(pos(box(0.15, 0.2, 0.06, M.emergRed), 0, 1.4, 0.04));
+      // Glass panel front
+      g.add(pos(box(0.12, 0.1, 0.01, M.glass), 0, 1.44, 0.075));
+      // Pull handle
+      g.add(pos(box(0.06, 0.03, 0.02, M.metalLight), 0, 1.34, 0.075));
+      // Strobe light dome on top
+      g.add(pos(cyl(0.03, 0.03, 0.03, M.lampGlow, 8), 0, 1.53, 0.04));
+      // FIRE text label area
+      g.add(pos(box(0.1, 0.03, 0.005, M.whitePaint), 0, 1.48, 0.076));
+      // Wire conduit going up
+      g.add(pos(cyl(0.012, 0.012, 0.3, M.metalMid), 0, 1.67, 0));
+      // Frame edges
+      g.add(pos(box(0.16, 0.01, 0.06, M.metalDark), 0, 1.51, 0.04));
+      g.add(pos(box(0.16, 0.01, 0.06, M.metalDark), 0, 1.29, 0.04));
+      return g;
+    }
+  },
+  // --- Часы настенные ---
+  {
+    id: 'wall_clock', name: 'Часы настенные', icon: '🕐', category: 'items',
+    create: () => {
+      const g = new THREE.Group();
+      // Frame rim
+      g.add(pos(cyl(0.22, 0.22, 0.04, M.metalDark, 24), 0, 2.0, 0));
+      // Round face
+      g.add(pos(cyl(0.2, 0.2, 0.02, M.whitePaint, 24), 0, 2.0, 0.02));
+      // Hour markers (12)
+      for (let i = 0; i < 12; i++) {
+        const a = (i / 12) * Math.PI * 2;
+        const marker = box(0.015, 0.03, 0.005, M.metalDark);
+        marker.position.set(Math.sin(a) * 0.16, 2.0 + Math.cos(a) * 0.16, 0.035);
+        g.add(marker);
+      }
+      // Hour hand
+      const hourHand = box(0.015, 0.09, 0.005, M.metalDark);
+      hourHand.position.set(0.02, 2.04, 0.04);
+      hourHand.rotation.z = -0.8;
+      g.add(hourHand);
+      // Minute hand
+      const minHand = box(0.01, 0.13, 0.005, M.metalDark);
+      minHand.position.set(-0.01, 2.06, 0.04);
+      minHand.rotation.z = 0.4;
+      g.add(minHand);
+      // Center pin
+      g.add(pos(cyl(0.01, 0.01, 0.015, M.chrome, 8), 0, 2.0, 0.04));
+      // Glass cover
+      g.add(pos(cyl(0.19, 0.19, 0.01, M.glass, 24), 0, 2.0, 0.045));
+      return g;
+    }
+  },
+  // --- Доска маркерная ---
+  {
+    id: 'whiteboard', name: 'Доска маркерная', icon: '📋', category: 'items',
+    create: () => {
+      const g = new THREE.Group();
+      // White board surface
+      g.add(pos(box(1.2, 0.8, 0.02, M.whitePaint), 0, 1.8, 0));
+      // Metal frame
+      g.add(pos(box(1.24, 0.03, 0.03, M.metalLight), 0, 2.2, 0));
+      g.add(pos(box(1.24, 0.03, 0.03, M.metalLight), 0, 1.4, 0));
+      g.add(pos(box(0.03, 0.8, 0.03, M.metalLight), -0.61, 1.8, 0));
+      g.add(pos(box(0.03, 0.8, 0.03, M.metalLight), 0.61, 1.8, 0));
+      // Tray at bottom
+      g.add(pos(box(1.0, 0.04, 0.06, M.metalMid), 0, 1.38, 0.04));
+      // Markers in tray
+      g.add(pos(cyl(0.012, 0.012, 0.1, M.danger), -0.15, 1.39, 0.04));
+      g.add(pos(cyl(0.012, 0.012, 0.1, M.metalPaint), 0, 1.39, 0.04));
+      g.add(pos(cyl(0.012, 0.012, 0.1, M.metalDark), 0.15, 1.39, 0.04));
+      // Eraser
+      g.add(pos(box(0.08, 0.03, 0.04, M.mattress), 0.35, 1.39, 0.04));
+      // Wall mounting
+      g.add(pos(box(0.6, 0.06, 0.02, M.metalDark), 0, 1.8, -0.02));
+      return g;
+    }
+  },
+  // --- Шкаф картотечный ---
+  {
+    id: 'filing_cabinet', name: 'Шкаф картотечный', icon: '🗄️', category: 'items',
+    create: () => {
+      const g = new THREE.Group();
+      // Main body
+      g.add(pos(box(0.5, 1.4, 0.6, M.metalPaint), 0, 0.7, 0));
+      // 4 drawer faces
+      for (let i = 0; i < 4; i++) {
+        const y = 0.2 + i * 0.34;
+        g.add(pos(box(0.46, 0.28, 0.02, M.metalMid), 0, y, 0.3));
+        // Handle
+        g.add(pos(box(0.12, 0.02, 0.02, M.chrome), 0, y + 0.06, 0.32));
+        // Label holder
+        g.add(pos(box(0.08, 0.05, 0.005, M.metalLight), 0, y - 0.04, 0.315));
+      }
+      // Top surface detail
+      g.add(pos(box(0.5, 0.02, 0.6, M.metalDark), 0, 1.41, 0));
+      // Lock on top drawer
+      g.add(pos(cyl(0.015, 0.015, 0.025, M.chrome, 8), 0.15, 1.3, 0.315));
+      // Feet
+      g.add(pos(box(0.06, 0.03, 0.06, M.metalDark), -0.2, 0.015, -0.24));
+      g.add(pos(box(0.06, 0.03, 0.06, M.metalDark), 0.2, 0.015, -0.24));
+      g.add(pos(box(0.06, 0.03, 0.06, M.metalDark), -0.2, 0.015, 0.24));
+      g.add(pos(box(0.06, 0.03, 0.06, M.metalDark), 0.2, 0.015, 0.24));
+      return g;
+    }
+  },
+  // --- Офисный стол с ПК ---
+  {
+    id: 'office_desk', name: 'Офисный стол с ПК', icon: '🖥️', category: 'items',
+    create: () => {
+      const g = new THREE.Group();
+      // Desk surface
+      g.add(pos(box(1.4, 0.04, 0.7, M.woodMid), 0, 0.75, 0));
+      // Desk panel sides
+      g.add(pos(box(0.04, 0.7, 0.66, M.woodDark), -0.68, 0.37, 0));
+      g.add(pos(box(0.04, 0.7, 0.66, M.woodDark), 0.68, 0.37, 0));
+      // Back panel
+      g.add(pos(box(1.32, 0.5, 0.02, M.woodDark), 0, 0.5, -0.33));
+      // Monitor frame
+      g.add(pos(box(0.5, 0.35, 0.03, M.metalDark), 0.1, 1.1, -0.1));
+      // Monitor screen
+      g.add(pos(box(0.46, 0.3, 0.01, M.screenGlow), 0.1, 1.1, -0.08));
+      // Monitor stand
+      g.add(pos(cyl(0.03, 0.05, 0.15, M.metalMid), 0.1, 0.85, -0.1));
+      g.add(pos(box(0.15, 0.02, 0.1, M.metalDark), 0.1, 0.77, -0.1));
+      // Keyboard
+      g.add(pos(box(0.35, 0.015, 0.12, M.metalDark), 0.1, 0.78, 0.12));
+      // Key detail on keyboard
+      g.add(pos(box(0.32, 0.005, 0.09, M.metalMid), 0.1, 0.79, 0.12));
+      // Mouse
+      g.add(pos(box(0.05, 0.02, 0.08, M.metalMid), 0.4, 0.78, 0.12));
+      // Drawer unit
+      g.add(pos(box(0.35, 0.5, 0.5, M.woodMid), -0.4, 0.28, 0.05));
+      g.add(pos(box(0.08, 0.02, 0.02, M.chrome), -0.4, 0.4, 0.31));
+      return g;
+    }
+  },
+  // --- Тюремная форма ---
+  {
+    id: 'prison_uniform', name: 'Тюремная форма', icon: '👕', category: 'items',
+    create: () => {
+      const g = new THREE.Group();
+      // Wall hook
+      g.add(pos(box(0.04, 0.04, 0.06, M.metalDark), 0, 1.9, 0));
+      g.add(pos(box(0.04, 0.08, 0.02, M.metalDark), 0, 1.86, 0.03));
+      // Hanger piece
+      g.add(pos(cyl(0.01, 0.01, 0.3, M.metalLight), 0, 1.82, 0.02));
+      // Shirt body
+      g.add(pos(box(0.35, 0.45, 0.06, M.fabricOrange), 0, 1.55, 0.02));
+      // Shirt sleeves
+      const sleeveL = box(0.12, 0.3, 0.06, M.fabricOrange);
+      sleeveL.position.set(-0.22, 1.6, 0.02);
+      sleeveL.rotation.z = 0.3;
+      g.add(sleeveL);
+      const sleeveR = box(0.12, 0.3, 0.06, M.fabricOrange);
+      sleeveR.position.set(0.22, 1.6, 0.02);
+      sleeveR.rotation.z = -0.3;
+      g.add(sleeveR);
+      // Number stripe on back
+      g.add(pos(box(0.2, 0.06, 0.005, M.whitePaint), 0, 1.6, -0.01));
+      // Pants below
+      g.add(pos(box(0.32, 0.5, 0.06, M.orangePaint), 0, 1.05, 0.02));
+      // Waistline detail
+      g.add(pos(box(0.34, 0.02, 0.065, M.metalDark), 0, 1.3, 0.02));
+      return g;
+    }
+  },
+  // --- Баскетбольное кольцо ---
+  {
+    id: 'basketball_hoop', name: 'Баскетбольное кольцо', icon: '🏀', category: 'items',
+    create: () => {
+      const g = new THREE.Group();
+      // Backboard
+      g.add(pos(box(1.0, 0.7, 0.03, M.whitePaint), 0, 3.2, 0));
+      // Backboard border
+      g.add(pos(box(1.04, 0.03, 0.04, M.metalDark), 0, 3.55, 0));
+      g.add(pos(box(1.04, 0.03, 0.04, M.metalDark), 0, 2.85, 0));
+      g.add(pos(box(0.03, 0.7, 0.04, M.metalDark), -0.51, 3.2, 0));
+      g.add(pos(box(0.03, 0.7, 0.04, M.metalDark), 0.51, 3.2, 0));
+      // Target square on backboard
+      g.add(pos(box(0.44, 0.005, 0.005, M.metalDark), 0, 3.25, 0.02));
+      g.add(pos(box(0.44, 0.005, 0.005, M.metalDark), 0, 2.95, 0.02));
+      g.add(pos(box(0.005, 0.3, 0.005, M.metalDark), -0.22, 3.1, 0.02));
+      g.add(pos(box(0.005, 0.3, 0.005, M.metalDark), 0.22, 3.1, 0.02));
+      // Rim/ring (4 segments)
+      g.add(pos(box(0.35, 0.02, 0.02, M.danger), 0, 3.0, 0.2));
+      g.add(pos(box(0.02, 0.02, 0.2, M.danger), -0.17, 3.0, 0.1));
+      g.add(pos(box(0.02, 0.02, 0.2, M.danger), 0.17, 3.0, 0.1));
+      g.add(pos(box(0.35, 0.02, 0.02, M.danger), 0, 3.0, 0.0));
+      // Mounting bracket
+      g.add(pos(box(0.2, 0.15, 0.1, M.metalDark), 0, 3.0, -0.01));
+      // Net (thin cylinders hanging down)
+      for (let i = -3; i <= 3; i++) {
+        g.add(pos(cyl(0.008, 0.008, 0.2, M.porcBase), i * 0.045, 2.85, 0.1 + Math.abs(i) * 0.01));
+      }
+      // Support arm
+      g.add(pos(box(0.08, 0.08, 0.15, M.metalMid), 0, 3.0, -0.08));
+      return g;
+    }
+  },
+  // --- Вышка охраны ---
+  {
+    id: 'guard_tower_section', name: 'Вышка охраны', icon: '🗼', category: 'items',
+    create: () => {
+      const g = new THREE.Group();
+      // 4 corner posts
+      g.add(pos(cyl(0.04, 0.04, 5, M.metalDark), -1, 2.5, -1));
+      g.add(pos(cyl(0.04, 0.04, 5, M.metalDark), 1, 2.5, -1));
+      g.add(pos(cyl(0.04, 0.04, 5, M.metalDark), -1, 2.5, 1));
+      g.add(pos(cyl(0.04, 0.04, 5, M.metalDark), 1, 2.5, 1));
+      // Platform floor
+      g.add(pos(box(2.2, 0.06, 2.2, M.metalMid), 0, 4.0, 0));
+      // Railing panels
+      g.add(pos(box(2.0, 0.8, 0.03, M.metalLight), 0, 4.4, 1.0));
+      g.add(pos(box(2.0, 0.8, 0.03, M.metalLight), 0, 4.4, -1.0));
+      g.add(pos(box(0.03, 0.8, 2.0, M.metalLight), 1.0, 4.4, 0));
+      g.add(pos(box(0.03, 0.8, 2.0, M.metalLight), -1.0, 4.4, 0));
+      // Railing posts
+      g.add(pos(cyl(0.025, 0.025, 1.0, M.metalDark), -1, 4.5, -1));
+      g.add(pos(cyl(0.025, 0.025, 1.0, M.metalDark), 1, 4.5, -1));
+      g.add(pos(cyl(0.025, 0.025, 1.0, M.metalDark), -1, 4.5, 1));
+      g.add(pos(cyl(0.025, 0.025, 1.0, M.metalDark), 1, 4.5, 1));
+      // Ladder (side rails + rungs)
+      g.add(pos(box(0.03, 4.5, 0.03, M.metalLight), 1.1, 2.25, -0.15));
+      g.add(pos(box(0.03, 4.5, 0.03, M.metalLight), 1.1, 2.25, 0.15));
+      for (let i = 0; i < 12; i++) {
+        g.add(pos(box(0.03, 0.02, 0.28, M.metalLight), 1.1, 0.3 + i * 0.36, 0));
+      }
+      // Searchlight mount on top
+      g.add(pos(box(0.15, 0.1, 0.15, M.metalDark), 0, 4.85, 0));
+      g.add(pos(cyl(0.08, 0.1, 0.12, M.lampBody, 8), 0, 4.95, 0));
+      // Roof overhang
+      g.add(pos(box(2.5, 0.04, 2.5, M.metalMid), 0, 5.1, 0));
+      return g;
+    }
+  },
   // ============ ОСВЕЩЕНИЕ ============
   {
     id: 'light_ceiling', name: 'Потолочная лампа', icon: '💡', category: 'lighting',
@@ -1606,6 +1964,158 @@ export const EDITOR_OBJECTS: EditorObjectType[] = [
     }
   },
 
+  // --- Промышленная лампа ---
+  {
+    id: 'light_industrial_hanging', name: 'Промышленная лампа', icon: '🏭', category: 'lighting',
+    create: () => {
+      const g = new THREE.Group();
+      // Ceiling mount plate
+      g.add(pos(box(0.12, 0.03, 0.12, M.metalDark), 0, 3.97, 0));
+      // Chain segments
+      for (let i = 0; i < 5; i++) {
+        g.add(pos(box(0.02, 0.06, 0.02, M.chainMetal), 0, 3.9 - i * 0.08, 0));
+      }
+      // Large metal shade
+      g.add(pos(cyl(0.06, 0.25, 0.18, M.metalRust, 12), 0, 3.4, 0));
+      // Shade rim
+      g.add(pos(cyl(0.25, 0.26, 0.02, M.metalDark, 12), 0, 3.31, 0));
+      // Visible bulb
+      g.add(pos(cyl(0.04, 0.04, 0.1, M.lampGlow, 8), 0, 3.35, 0));
+      // PointLight
+      const light = new THREE.PointLight(0xffffcc, 1.2, 14);
+      light.position.set(0, 3.3, 0);
+      g.add(light);
+      g.userData.hasLight = true;
+      return g;
+    }
+  },
+  // --- Выход (аварийный) ---
+  {
+    id: 'light_emergency_exit', name: 'Выход (аварийный)', icon: '🚪', category: 'lighting',
+    create: () => {
+      const g = new THREE.Group();
+      // Green illuminated box housing
+      const exitGreen = new THREE.MeshStandardMaterial({ color: 0x00aa44, roughness: 0.4, emissive: 0x00aa44, emissiveIntensity: 0.6 });
+      g.add(pos(new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.15, 0.04), exitGreen), 0, 3.5, 0));
+      // Frame edges (darker green)
+      const frameGreen = new THREE.MeshStandardMaterial({ color: 0x006633, roughness: 0.5 });
+      g.add(pos(new THREE.Mesh(new THREE.BoxGeometry(0.37, 0.01, 0.045), frameGreen), 0, 3.575, 0));
+      g.add(pos(new THREE.Mesh(new THREE.BoxGeometry(0.37, 0.01, 0.045), frameGreen), 0, 3.425, 0));
+      g.add(pos(new THREE.Mesh(new THREE.BoxGeometry(0.01, 0.15, 0.045), frameGreen), -0.18, 3.5, 0));
+      g.add(pos(new THREE.Mesh(new THREE.BoxGeometry(0.01, 0.15, 0.045), frameGreen), 0.18, 3.5, 0));
+      // Running man silhouette (simplified with dark boxes)
+      g.add(pos(box(0.02, 0.06, 0.005, M.metalDark), -0.04, 3.51, 0.025));
+      g.add(pos(box(0.04, 0.02, 0.005, M.metalDark), -0.02, 3.48, 0.025));
+      g.add(pos(box(0.03, 0.04, 0.005, M.metalDark), 0.04, 3.5, 0.025));
+      // Mounting bracket on top
+      g.add(pos(box(0.08, 0.04, 0.06, M.metalMid), 0, 3.6, 0));
+      // PointLight green
+      const light = new THREE.PointLight(0x00cc66, 0.4, 4);
+      light.position.set(0, 3.4, 0.05);
+      g.add(light);
+      g.userData.hasLight = true;
+      return g;
+    }
+  },
+  // --- Лампа люминесцентная (двойная) ---
+  {
+    id: 'light_fluorescent_dual', name: 'Лампа люминесцентная (двойная)', icon: '💡', category: 'lighting',
+    create: () => {
+      const g = new THREE.Group();
+      // Housing
+      g.add(pos(box(1.2, 0.06, 0.25, M.lampBody), 0, 3.94, 0));
+      // Reflector panel above tubes
+      g.add(pos(box(1.1, 0.02, 0.2, M.metalShiny), 0, 3.9, 0));
+      // Fluorescent tube 1 (bright)
+      g.add(pos(box(1.0, 0.03, 0.04, M.lampGlow), 0, 3.87, -0.05));
+      // Fluorescent tube 2 (slightly dimmer - aging)
+      const dimTube = new THREE.MeshStandardMaterial({ color: 0xeeeedd, emissive: 0xeeeedd, emissiveIntensity: 0.5 });
+      g.add(pos(new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.03, 0.04), dimTube), 0, 3.87, 0.05));
+      // End caps on tubes
+      g.add(pos(box(0.03, 0.04, 0.12, M.metalMid), -0.5, 3.87, 0));
+      g.add(pos(box(0.03, 0.04, 0.12, M.metalMid), 0.5, 3.87, 0));
+      // Ceiling mounting clips
+      g.add(pos(box(0.04, 0.04, 0.06, M.metalDark), -0.4, 3.98, 0));
+      g.add(pos(box(0.04, 0.04, 0.06, M.metalDark), 0, 3.98, 0));
+      g.add(pos(box(0.04, 0.04, 0.06, M.metalDark), 0.4, 3.98, 0));
+      // PointLight
+      const light = new THREE.PointLight(0xffffee, 1.0, 12);
+      light.position.set(0, 3.8, 0);
+      g.add(light);
+      g.userData.hasLight = true;
+      return g;
+    }
+  },
+  // --- Уличный фонарь ---
+  {
+    id: 'light_street_lamp', name: 'Уличный фонарь', icon: '🔆', category: 'lighting',
+    create: () => {
+      const g = new THREE.Group();
+      // Base plate
+      g.add(pos(box(0.35, 0.06, 0.35, M.metalDark), 0, 0.03, 0));
+      // Decorative base collar
+      g.add(pos(cyl(0.1, 0.14, 0.15, M.metalDark, 8), 0, 0.14, 0));
+      // Tall pole
+      g.add(pos(cyl(0.05, 0.06, 5, M.metalDark), 0, 2.6, 0));
+      // Curved arm (box segments)
+      g.add(pos(box(0.04, 0.3, 0.04, M.metalMid), 0, 5.2, 0));
+      g.add(pos(box(0.04, 0.04, 0.3, M.metalMid), 0, 5.35, 0.13));
+      g.add(pos(box(0.04, 0.2, 0.04, M.metalMid), 0, 5.25, 0.28));
+      // Lantern housing
+      g.add(pos(box(0.15, 0.2, 0.15, M.metalMid), 0, 5.1, 0.28));
+      // Glass panels on lantern
+      g.add(pos(box(0.01, 0.15, 0.12, M.glass), 0.07, 5.08, 0.28));
+      g.add(pos(box(0.01, 0.15, 0.12, M.glass), -0.07, 5.08, 0.28));
+      g.add(pos(box(0.12, 0.15, 0.01, M.glass), 0, 5.08, 0.35));
+      g.add(pos(box(0.12, 0.15, 0.01, M.glass), 0, 5.08, 0.21));
+      // Bulb inside
+      g.add(pos(cyl(0.03, 0.03, 0.08, M.lampGlow, 8), 0, 5.08, 0.28));
+      // PointLight up high
+      const light = new THREE.PointLight(0xffffaa, 1.5, 18);
+      light.position.set(0, 5.0, 0.28);
+      g.add(light);
+      g.userData.hasLight = true;
+      return g;
+    }
+  },
+  // --- Прожектор поисковый ---
+  {
+    id: 'light_searchlight', name: 'Прожектор поисковый', icon: '🔦', category: 'lighting',
+    create: () => {
+      const g = new THREE.Group();
+      // Heavy base
+      g.add(pos(cyl(0.25, 0.3, 0.1, M.metalDark, 12), 0, 0.05, 0));
+      // Pedestal/pivot mount
+      g.add(pos(cyl(0.06, 0.08, 0.4, M.metalMid), 0, 0.3, 0));
+      // Pivot joint
+      g.add(pos(cyl(0.05, 0.05, 0.06, M.metalShiny, 8), 0, 0.52, 0));
+      // Large cylindrical housing (horizontal)
+      const housing = cyl(0.15, 0.12, 0.45, M.metalDark, 12);
+      housing.position.set(0, 0.6, 0.15);
+      housing.rotation.x = Math.PI / 2;
+      g.add(housing);
+      // Lens at front
+      const lens = cyl(0.13, 0.13, 0.03, M.glass, 12);
+      lens.position.set(0, 0.6, 0.38);
+      lens.rotation.x = Math.PI / 2;
+      g.add(lens);
+      // Heat vents on housing
+      for (let i = -2; i <= 2; i++) {
+        g.add(pos(box(0.12, 0.01, 0.04, M.ventSlat), 0, 0.6 + i * 0.04, -0.02));
+      }
+      // Handle/aiming arms
+      g.add(pos(box(0.02, 0.15, 0.02, M.metalMid), -0.12, 0.6, 0.1));
+      g.add(pos(box(0.02, 0.15, 0.02, M.metalMid), 0.12, 0.6, 0.1));
+      // SpotLight with high intensity
+      const light = new THREE.SpotLight(0xffffff, 3, 25, 0.4, 0.5);
+      light.position.set(0, 0.6, 0.4);
+      light.target.position.set(0, 0.6, 5);
+      g.add(light);
+      g.add(light.target);
+      g.userData.hasLight = true;
+      return g;
+    }
+  },
   // ============ СКРИПТЫ ============
   {
     id: 'spawn_prisoner', name: 'Спавн зека', icon: '👤', category: 'scripts',
