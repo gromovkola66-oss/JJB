@@ -55,7 +55,7 @@ export class PrisonMapDetailed {
       ammo:       new THREE.MeshStandardMaterial({ color: 0x5a5a3a, roughness: 0.8 }),
       vest:       new THREE.MeshStandardMaterial({ color: 0x1e40af, roughness: 0.8 }),
       armoryWall: new THREE.MeshStandardMaterial({ color: 0x8a7a7a, roughness: 0.85 }),
-      glow:       new THREE.MeshStandardMaterial({ color: 0xffffee, emissive: 0xffffee, emissiveIntensity: 2.0 }),
+      glow:       new THREE.MeshStandardMaterial({ color: 0xffffee, emissive: 0xffffee, emissiveIntensity: 0.8 }),
     };
 
     this.buildMap();

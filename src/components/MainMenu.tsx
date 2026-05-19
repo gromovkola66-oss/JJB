@@ -4,8 +4,6 @@ import * as THREE from 'three';
 interface MainMenuProps {
   onStartGame: () => void;
   onOpenEditor: () => void;
-  onOpenModelEditor: () => void;
-  onOpenAnimEditor: () => void;
 }
 
 // === 3D СЦЕНА — тюремный коридор с охранником ===
@@ -282,7 +280,7 @@ const ServersPanel = ({ onClose }: { onClose: () => void }) => (
 );
 
 // === ГЛАВНОЕ МЕНЮ ===
-export const MainMenu = ({ onStartGame, onOpenEditor, onOpenModelEditor, onOpenAnimEditor }: MainMenuProps) => {
+export const MainMenu = ({ onStartGame, onOpenEditor }: MainMenuProps) => {
   const [showSettings, setShowSettings] = useState(false);
   const [showServers, setShowServers] = useState(false);
   const [hoveredBtn, setHoveredBtn] = useState<string | null>(null);
@@ -291,8 +289,6 @@ export const MainMenu = ({ onStartGame, onOpenEditor, onOpenModelEditor, onOpenA
     { id: 'play', label: 'Начать игру', color: 'from-blue-600 to-blue-800', hoverColor: 'from-blue-500 to-blue-700', action: onStartGame },
     { id: 'servers', label: 'Серверы', color: 'from-purple-600 to-purple-800', hoverColor: 'from-purple-500 to-purple-700', action: () => setShowServers(true) },
     { id: 'editor', label: 'Редактор карт', color: 'from-emerald-600 to-emerald-800', hoverColor: 'from-emerald-500 to-emerald-700', action: onOpenEditor },
-    { id: 'modelEditor', label: 'Редактор моделей', color: 'from-orange-600 to-orange-800', hoverColor: 'from-orange-500 to-orange-700', action: onOpenModelEditor },
-    { id: 'animEditor', label: 'Редактор анимации', color: 'from-cyan-600 to-cyan-800', hoverColor: 'from-cyan-500 to-cyan-700', action: onOpenAnimEditor },
     { id: 'settings', label: 'Настройки', color: 'from-gray-600 to-gray-800', hoverColor: 'from-gray-500 to-gray-700', action: () => setShowSettings(true) },
     { id: 'exit', label: 'Выход', color: 'from-red-700 to-red-900', hoverColor: 'from-red-600 to-red-800', action: () => window.close() },
   ];
