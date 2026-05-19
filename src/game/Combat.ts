@@ -40,11 +40,15 @@ export class Combat {
   private punchRange = 2;
   private punchCooldownTime = 0.5; // секунды между ударами
   
+  private storedWeapon: Weapon | null = null;
+
   // Callbacks
   public onStateChange?: (state: CombatState) => void;
   public onHit?: (damage: number) => void;
   public onDeath?: () => void;
   public onCameraRecoil?: (amount: number) => void;
+  public onWeaponPickedUp?: (weaponName: string) => void;
+  public onWeaponDropped?: () => void;
   
   private boundMouseDown = this.onMouseDown.bind(this);
   private boundKeyDown = this.onKeyDown.bind(this);
@@ -78,6 +82,7 @@ export class Combat {
     this.camera.add(this.weapon.group);
     this.hands.setVisible(false);
     this.notifyStateChange();
+    this.onWeaponPickedUp?.(this.weapon.stats.name);
   }
 
   // Создать подбираемое оружие в указанной позиции
@@ -92,6 +97,26 @@ export class Combat {
     this.camera.remove(this.weapon.group);
     this.weapon = null;
     this.hands.setVisible(true);
+    this.notifyStateChange();
+  }
+
+  // Put away weapon (hide from camera but keep reference for inventory)
+  putAwayWeapon() {
+    if (!this.weapon) return;
+    this.camera.remove(this.weapon.group);
+    this.storedWeapon = this.weapon;
+    this.weapon = null;
+    this.hands.setVisible(true);
+    this.notifyStateChange();
+  }
+
+  // Take out stored weapon (re-attach to camera)
+  takeOutWeapon() {
+    if (!this.storedWeapon) return;
+    this.weapon = this.storedWeapon;
+    this.storedWeapon = null;
+    this.camera.add(this.weapon.group);
+    this.hands.setVisible(false);
     this.notifyStateChange();
   }
 
@@ -288,6 +313,7 @@ export class Combat {
         soundSystem.playPickup();
         
         this.notifyStateChange();
+        this.onWeaponPickedUp?.('AK-47');
         return;
       }
     }
@@ -320,6 +346,7 @@ export class Combat {
     soundSystem.playDrop();
     
     this.notifyStateChange();
+    this.onWeaponDropped?.();
   }
 
   takeDamage(damage: number) {

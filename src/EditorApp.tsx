@@ -7,6 +7,7 @@ import { EditorUI } from './components/EditorUI';
 import { EditorObjectType } from './editor/EditorObjects';
 import { CombatState } from './game/Combat';
 import { CameraSystemState } from './game/CameraSystem';
+import { InventoryState } from './game/InventorySystem';
 
 interface EditorAppProps {
   onBackToGame: () => void;
@@ -39,6 +40,7 @@ export const EditorApp = ({ onBackToGame }: EditorAppProps) => {
   const [ptCombat, setPtCombat] = useState<CombatState | null>(null);
   const [ptLocked, setPtLocked] = useState(false);
   const [ptCameraState, setPtCameraState] = useState<CameraSystemState | null>(null);
+  const [ptInventory, setPtInventory] = useState<InventoryState | null>(null);
 
   // === EDITOR ===
   useEffect(() => {
@@ -148,6 +150,9 @@ export const EditorApp = ({ onBackToGame }: EditorAppProps) => {
       pt.onCameraSystemUpdate = (state) => {
         setPtCameraState({ ...state });
       };
+      pt.onInventoryUpdate = (state) => {
+        setPtInventory({ ...state });
+      };
 
       pt.start();
     }, 100);
@@ -162,6 +167,7 @@ export const EditorApp = ({ onBackToGame }: EditorAppProps) => {
       document.exitPointerLock();
     }
     setPtCameraState(null);
+    setPtInventory(null);
     setMode('editing');
   }, []);
 
@@ -355,6 +361,54 @@ export const EditorApp = ({ onBackToGame }: EditorAppProps) => {
                 >
                   ← Вернуться в редактор (F9)
                 </button>
+              </div>
+            </div>
+          )}
+
+          {/* Inventory Wheel */}
+          {ptInventory?.isOpen && (
+            <div className="fixed inset-0 bg-black/60 pointer-events-auto">
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
+                <div className="w-80 h-80 rounded-full border-2 border-white/20 relative">
+                  {ptInventory.slots.map((item, index) => {
+                    const angle = (index * Math.PI * 2) / 6 - Math.PI / 2;
+                    const isHighlighted = ptInventory.hoveredSlot === index || ptInventory.equippedSlot === index;
+                    return (
+                      <div
+                        key={index}
+                        className={`absolute -translate-x-1/2 -translate-y-1/2 w-16 h-16 rounded-full flex flex-col items-center justify-center cursor-pointer transition-all ${
+                          isHighlighted
+                            ? 'border-2 border-yellow-400 bg-gray-700/90 scale-110'
+                            : 'border-2 border-gray-600/50 bg-gray-800/80 hover:border-gray-400'
+                        }`}
+                        style={{
+                          top: `calc(50% + ${Math.sin(angle) * 140}px)`,
+                          left: `calc(50% + ${Math.cos(angle) * 140}px)`,
+                        }}
+                        onClick={() => playtestRef.current?.inventoryEquipSlot(index)}
+                        onMouseEnter={() => playtestRef.current?.inventorySetHovered(index)}
+                        onMouseLeave={() => playtestRef.current?.inventorySetHovered(null)}
+                      >
+                        {item ? (
+                          <>
+                            <span className="text-2xl">{item.icon}</span>
+                            <span className="text-xs text-white mt-0.5">{item.name}</span>
+                          </>
+                        ) : (
+                          <span className="text-xs text-gray-500">Пусто</span>
+                        )}
+                      </div>
+                    );
+                  })}
+                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center">
+                    <div className="text-white font-bold">
+                      {ptInventory.slots[ptInventory.equippedSlot]?.name || 'Пусто'}
+                    </div>
+                  </div>
+                </div>
+                <div className="text-center mt-4 text-gray-400 text-sm">
+                  Q - Закрыть
+                </div>
               </div>
             </div>
           )}

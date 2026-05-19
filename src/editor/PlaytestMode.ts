@@ -3,6 +3,7 @@ import { FirstPersonController } from '../game/FirstPersonController';
 import { Hands } from '../game/Hands';
 import { Combat, CombatState } from '../game/Combat';
 import { CameraSystem, CameraSystemState } from '../game/CameraSystem';
+import { InventorySystem, InventoryState } from '../game/InventorySystem';
 import { MapData } from './MapEditor';
 import { getObjectById } from './EditorObjects';
 import { soundSystem } from '../game/SoundSystem';
@@ -14,6 +15,7 @@ export class PlaytestMode {
   private hands: Hands;
   private combat: Combat;
   private cameraSystem: CameraSystem;
+  private inventory: InventorySystem;
   private colliders: THREE.Box3[] = [];
   private inTerminalMode = false;
 
@@ -28,6 +30,7 @@ export class PlaytestMode {
   public onStatsUpdate?: (fps: number, pos: THREE.Vector3) => void;
   public onCombatUpdate?: (state: CombatState) => void;
   public onCameraSystemUpdate?: (state: CameraSystemState) => void;
+  public onInventoryUpdate?: (state: InventoryState) => void;
 
   private frameCount = 0;
   private fpsTime = 0;
@@ -65,6 +68,31 @@ export class PlaytestMode {
     });
     this.combat.onStateChange = (state) => {
       this.onCombatUpdate?.(state);
+    };
+    this.combat.onWeaponPickedUp = () => {
+      this.inventory.addItem({ id: 'weapon_ak47', name: 'AK-47', icon: '\u{1F52B}', type: 'weapon' });
+    };
+    this.combat.onWeaponDropped = () => {
+      this.inventory.removeItem('weapon_ak47');
+    };
+
+    // Inventory system
+    this.inventory = new InventorySystem();
+    this.inventory.onStateChange = (state) => {
+      this.onInventoryUpdate?.(state);
+    };
+    this.inventory.onOpen = () => {
+      document.exitPointerLock();
+    };
+    this.inventory.onClose = () => {
+      document.body.requestPointerLock();
+    };
+    this.inventory.onEquip = (item) => {
+      if (item && item.type === 'weapon') {
+        this.combat.takeOutWeapon();
+      } else {
+        this.combat.putAwayWeapon();
+      }
     };
 
     // Система камер наблюдения
@@ -107,6 +135,12 @@ export class PlaytestMode {
   }
 
   private onKeyDown = (event: KeyboardEvent) => {
+    if (event.code === 'KeyQ') {
+      if (document.pointerLockElement !== null || this.inventory.getIsOpen()) {
+        this.inventory.toggle();
+      }
+      return;
+    }
     if (event.code === 'KeyE') {
       // Terminal exit does NOT require pointer lock (pointer lock is released while in terminal mode)
       if (this.inTerminalMode) {
@@ -294,6 +328,14 @@ export class PlaytestMode {
 
   selectCamera(index: number | null) {
     this.cameraSystem.selectCamera(index);
+  }
+
+  inventoryEquipSlot(index: number) {
+    this.inventory.equipSlot(index);
+  }
+
+  inventorySetHovered(index: number | null) {
+    this.inventory.setHoveredSlot(index);
   }
 
   dispose() {

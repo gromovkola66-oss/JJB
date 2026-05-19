@@ -7,6 +7,7 @@ import { TeamSystem, Team, PlayerInfo } from './TeamSystem';
 import { RoundSystem, RoundState } from './RoundSystem';
 import { DoorSystem, Door } from './DoorSystem';
 import { CameraSystem, CameraSystemState } from './CameraSystem';
+import { InventorySystem, InventoryState } from './InventorySystem';
 import { soundSystem } from './SoundSystem';
 
 export interface DoorInteractionState {
@@ -25,6 +26,7 @@ export class Game {
   private combat: Combat;
   private doorSystem: DoorSystem;
   private cameraSystem: CameraSystem;
+  private inventory: InventorySystem;
   public teamSystem: TeamSystem;
   public roundSystem: RoundSystem;
 
@@ -40,6 +42,7 @@ export class Game {
   private onRoundUpdate?: (state: RoundState) => void;
   private onDoorInteraction?: (state: DoorInteractionState) => void;
   private onCameraSystemUpdate?: (state: CameraSystemState) => void;
+  private onInventoryUpdate?: (state: InventoryState) => void;
   
   private frameCount = 0;
   private fpsTime = 0;
@@ -130,6 +133,31 @@ export class Game {
     this.combat.onCameraRecoil = (amount) => {
       this.controller.addRecoil(amount);
     };
+    this.combat.onWeaponPickedUp = () => {
+      this.inventory.addItem({ id: 'weapon_ak47', name: 'AK-47', icon: '\u{1F52B}', type: 'weapon' });
+    };
+    this.combat.onWeaponDropped = () => {
+      this.inventory.removeItem('weapon_ak47');
+    };
+
+    // Inventory system
+    this.inventory = new InventorySystem();
+    this.inventory.onStateChange = (state) => {
+      this.onInventoryUpdate?.(state);
+    };
+    this.inventory.onOpen = () => {
+      document.exitPointerLock();
+    };
+    this.inventory.onClose = () => {
+      document.body.requestPointerLock();
+    };
+    this.inventory.onEquip = (item) => {
+      if (item && item.type === 'weapon') {
+        this.combat.takeOutWeapon();
+      } else {
+        this.combat.putAwayWeapon();
+      }
+    };
 
     // Система команд
     this.teamSystem = new TeamSystem();
@@ -164,6 +192,12 @@ export class Game {
   }
 
   private onKeyDown(event: KeyboardEvent) {
+    if (event.code === 'KeyQ') {
+      if (document.pointerLockElement !== null || this.inventory.getIsOpen()) {
+        this.inventory.toggle();
+      }
+      return;
+    }
     if (event.code === 'KeyE') {
       // Terminal exit does NOT require pointer lock (pointer lock is released while in terminal mode)
       if (this.inTerminalMode) {
@@ -215,6 +249,12 @@ export class Game {
     this.combat.onCameraRecoil = (amount) => {
       this.controller.addRecoil(amount);
     };
+    this.combat.onWeaponPickedUp = () => {
+      this.inventory.addItem({ id: 'weapon_ak47', name: 'AK-47', icon: '\u{1F52B}', type: 'weapon' });
+    };
+    this.combat.onWeaponDropped = () => {
+      this.inventory.removeItem('weapon_ak47');
+    };
 
     // Телепортируем
     camera.position.copy(info.spawnPoint);
@@ -237,6 +277,7 @@ export class Game {
       this.combat.giveWeapon();
     } else {
       this.combat.removeWeapon();
+      this.inventory.removeItem('weapon_ak47');
     }
 
     if (this.onCombatUpdate) {
@@ -289,6 +330,19 @@ export class Game {
   setOnCameraSystemUpdate(callback: (state: CameraSystemState) => void) {
     this.onCameraSystemUpdate = callback;
     callback(this.cameraSystem.getState());
+  }
+
+  setOnInventoryUpdate(callback: (state: InventoryState) => void) {
+    this.onInventoryUpdate = callback;
+    callback(this.inventory.getState());
+  }
+
+  inventoryEquipSlot(index: number) {
+    this.inventory.equipSlot(index);
+  }
+
+  inventorySetHovered(index: number | null) {
+    this.inventory.setHoveredSlot(index);
   }
 
   selectSecurityCamera(index: number | null) {

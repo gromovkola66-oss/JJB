@@ -3,6 +3,7 @@ import { CombatState } from '../game/Combat';
 import { Team } from '../game/TeamSystem';
 import { DoorInteractionState } from '../game/Game';
 import { CameraSystemState } from '../game/CameraSystem';
+import { InventoryState } from '../game/InventorySystem';
 
 interface GameUIProps {
   fps: number;
@@ -16,9 +17,12 @@ interface GameUIProps {
   guardMenuOpen: boolean;
   cameraState: CameraSystemState | null;
   onSelectCamera?: (index: number | null) => void;
+  inventoryState?: InventoryState | null;
+  onInventorySelect?: (index: number) => void;
+  onInventoryHover?: (index: number | null) => void;
 }
 
-export const GameUI = ({ fps, position, isLocked, combatState, team, teamName, doorState, isWarden: _isWarden, guardMenuOpen, cameraState, onSelectCamera }: GameUIProps) => {
+export const GameUI = ({ fps, position, isLocked, combatState, team, teamName, doorState, isWarden: _isWarden, guardMenuOpen, cameraState, onSelectCamera, inventoryState, onInventorySelect, onInventoryHover }: GameUIProps) => {
   
   return (
     <div className="fixed inset-0 pointer-events-none select-none">
@@ -307,6 +311,56 @@ export const GameUI = ({ fps, position, isLocked, combatState, team, teamName, d
               </div>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Inventory Wheel */}
+      {inventoryState?.isOpen && (
+        <div className="fixed inset-0 bg-black/60 pointer-events-auto">
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
+            <div className="w-80 h-80 rounded-full border-2 border-white/20 relative">
+              {inventoryState.slots.map((item, index) => {
+                const angle = (index * Math.PI * 2) / 6 - Math.PI / 2;
+                const isHighlighted = inventoryState.hoveredSlot === index || inventoryState.equippedSlot === index;
+                return (
+                  <div
+                    key={index}
+                    className={`absolute -translate-x-1/2 -translate-y-1/2 w-16 h-16 rounded-full flex flex-col items-center justify-center cursor-pointer transition-all ${
+                      isHighlighted
+                        ? 'border-2 border-yellow-400 bg-gray-700/90 scale-110'
+                        : 'border-2 border-gray-600/50 bg-gray-800/80 hover:border-gray-400'
+                    }`}
+                    style={{
+                      top: `calc(50% + ${Math.sin(angle) * 140}px)`,
+                      left: `calc(50% + ${Math.cos(angle) * 140}px)`,
+                    }}
+                    onClick={() => onInventorySelect?.(index)}
+                    onMouseEnter={() => onInventoryHover?.(index)}
+                    onMouseLeave={() => onInventoryHover?.(null)}
+                  >
+                    {item ? (
+                      <>
+                        <span className="text-2xl">{item.icon}</span>
+                        <span className="text-xs text-white mt-0.5">{item.name}</span>
+                      </>
+                    ) : (
+                      <span className="text-xs text-gray-500">Пусто</span>
+                    )}
+                  </div>
+                );
+              })}
+              {/* Center text */}
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center">
+                <div className="text-white font-bold">
+                  {inventoryState.slots[inventoryState.equippedSlot]?.name || 'Пусто'}
+                </div>
+              </div>
+            </div>
+            {/* Bottom hint */}
+            <div className="text-center mt-4 text-gray-400 text-sm">
+              Q - Закрыть
+            </div>
+          </div>
         </div>
       )}
 

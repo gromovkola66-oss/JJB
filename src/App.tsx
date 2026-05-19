@@ -10,6 +10,7 @@ import { CombatState } from './game/Combat';
 import { Team } from './game/TeamSystem';
 import { RoundState } from './game/RoundSystem';
 import { CameraSystemState } from './game/CameraSystem';
+import { InventoryState } from './game/InventorySystem';
 import { soundSystem } from './game/SoundSystem';
 import { EditorApp } from './EditorApp';
 
@@ -45,6 +46,7 @@ const GameApp = ({ onBackToMenu }: GameAppProps) => {
   const [roundState, setRoundState] = useState<RoundState | null>(null);
   const [doorState, setDoorState] = useState<DoorInteractionState | null>(null);
   const [cameraState, setCameraState] = useState<CameraSystemState | null>(null);
+  const [inventoryState, setInventoryState] = useState<InventoryState | null>(null);
   
   const [teamSelected, setTeamSelected] = useState(false);
   const [currentTeam, setCurrentTeam] = useState<Team>('none');
@@ -108,6 +110,10 @@ const GameApp = ({ onBackToMenu }: GameAppProps) => {
 
     game.setOnCameraSystemUpdate((state) => {
       setCameraState(state);
+    });
+
+    game.setOnInventoryUpdate((state) => {
+      setInventoryState({ ...state });
     });
 
     const handlePointerLockChange = () => {
@@ -210,6 +216,9 @@ const GameApp = ({ onBackToMenu }: GameAppProps) => {
           guardMenuOpen={guardMenuOpen}
           cameraState={cameraState}
           onSelectCamera={(index) => gameRef.current?.selectSecurityCamera(index)}
+          inventoryState={inventoryState}
+          onInventorySelect={(idx) => gameRef.current?.inventoryEquipSlot(idx)}
+          onInventoryHover={(idx) => gameRef.current?.inventorySetHovered(idx)}
         />
       )}
     </div>
