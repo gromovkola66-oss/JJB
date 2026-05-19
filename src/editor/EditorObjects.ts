@@ -121,6 +121,8 @@ const M = {
   barbedWire: new THREE.MeshStandardMaterial({ color: 0x5a5a5a, roughness: 0.4, metalness: 0.7 }),
   rustPatch: new THREE.MeshStandardMaterial({ color: 0x6a3a1a, roughness: 0.85, metalness: 0.3 }),
   agedStain: new THREE.MeshStandardMaterial({ color: 0x5a5548, roughness: 0.95 }),
+  exitGreen: new THREE.MeshStandardMaterial({ color: 0x00aa44, roughness: 0.4, emissive: 0x00aa44, emissiveIntensity: 0.6 }),
+  exitGreenFrame: new THREE.MeshStandardMaterial({ color: 0x006633, roughness: 0.5 }),
 };
 
 export interface EditorObjectType {
@@ -1995,14 +1997,12 @@ export const EDITOR_OBJECTS: EditorObjectType[] = [
     create: () => {
       const g = new THREE.Group();
       // Green illuminated box housing
-      const exitGreen = new THREE.MeshStandardMaterial({ color: 0x00aa44, roughness: 0.4, emissive: 0x00aa44, emissiveIntensity: 0.6 });
-      g.add(pos(new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.15, 0.04), exitGreen), 0, 3.5, 0));
+      g.add(pos(new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.15, 0.04), M.exitGreen), 0, 3.5, 0));
       // Frame edges (darker green)
-      const frameGreen = new THREE.MeshStandardMaterial({ color: 0x006633, roughness: 0.5 });
-      g.add(pos(new THREE.Mesh(new THREE.BoxGeometry(0.37, 0.01, 0.045), frameGreen), 0, 3.575, 0));
-      g.add(pos(new THREE.Mesh(new THREE.BoxGeometry(0.37, 0.01, 0.045), frameGreen), 0, 3.425, 0));
-      g.add(pos(new THREE.Mesh(new THREE.BoxGeometry(0.01, 0.15, 0.045), frameGreen), -0.18, 3.5, 0));
-      g.add(pos(new THREE.Mesh(new THREE.BoxGeometry(0.01, 0.15, 0.045), frameGreen), 0.18, 3.5, 0));
+      g.add(pos(new THREE.Mesh(new THREE.BoxGeometry(0.37, 0.01, 0.045), M.exitGreenFrame), 0, 3.575, 0));
+      g.add(pos(new THREE.Mesh(new THREE.BoxGeometry(0.37, 0.01, 0.045), M.exitGreenFrame), 0, 3.425, 0));
+      g.add(pos(new THREE.Mesh(new THREE.BoxGeometry(0.01, 0.15, 0.045), M.exitGreenFrame), -0.18, 3.5, 0));
+      g.add(pos(new THREE.Mesh(new THREE.BoxGeometry(0.01, 0.15, 0.045), M.exitGreenFrame), 0.18, 3.5, 0));
       // Running man silhouette (simplified with dark boxes)
       g.add(pos(box(0.02, 0.06, 0.005, M.metalDark), -0.04, 3.51, 0.025));
       g.add(pos(box(0.04, 0.02, 0.005, M.metalDark), -0.02, 3.48, 0.025));
