@@ -23,6 +23,7 @@ export class PlaytestMode {
   private readonly FOOTSTEP_INTERVAL = 0.4;
 
   private raycaster = new THREE.Raycaster();
+  private boundOnResize = this.onResize.bind(this);
 
   public onStatsUpdate?: (fps: number, pos: THREE.Vector3) => void;
   public onCombatUpdate?: (state: CombatState) => void;
@@ -102,7 +103,7 @@ export class PlaytestMode {
     document.addEventListener('keydown', this.onKeyDown);
 
     // Ресайз
-    window.addEventListener('resize', this.onResize.bind(this));
+    window.addEventListener('resize', this.boundOnResize);
   }
 
   private onKeyDown = (event: KeyboardEvent) => {
@@ -291,10 +292,11 @@ export class PlaytestMode {
 
   dispose() {
     this.stop();
+    this.renderer.domElement.parentElement?.removeChild(this.renderer.domElement);
     this.renderer.dispose();
     this.controller.dispose();
     this.combat.dispose();
     document.removeEventListener('keydown', this.onKeyDown);
-    window.removeEventListener('resize', this.onResize.bind(this));
+    window.removeEventListener('resize', this.boundOnResize);
   }
 }

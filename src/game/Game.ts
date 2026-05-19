@@ -171,6 +171,7 @@ export class Game {
         return;
       }
       // Try to interact with terminal first
+      // Note: Any team (guard or prisoner) can use security terminals - this is intentional.
       if (this.cameraSystem.terminalHighlighted) {
         const playerPos = this.controller.camera.position;
         this.cameraSystem.enterTerminalMode(playerPos);

@@ -75,12 +75,18 @@ export class CameraSystem {
 
     if (terminalMeshes.length === 0) {
       this.clearHighlight();
+      const wasHighlighted = this._terminalHighlighted;
       this._terminalHighlighted = false;
+      if (wasHighlighted !== this._terminalHighlighted) {
+        this.emitState();
+      }
       return false;
     }
 
     const intersects = raycaster.intersectObjects(terminalMeshes, false);
     const hit = intersects.length > 0 && intersects[0].distance < this.interactionRange;
+
+    const wasHighlighted = this._terminalHighlighted;
 
     if (hit) {
       const hitMesh = intersects[0].object as THREE.Mesh;
@@ -92,6 +98,10 @@ export class CameraSystem {
     } else {
       this.clearHighlight();
       this._terminalHighlighted = false;
+    }
+
+    if (this._terminalHighlighted !== wasHighlighted) {
+      this.emitState();
     }
 
     return hit;
