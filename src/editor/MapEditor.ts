@@ -10,6 +10,7 @@ export interface PlacedObject {
   rotationX?: number;
   rotationZ?: number;
   scale?: number;
+  groupId?: number;
 }
 
 export interface MapData {

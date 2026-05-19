@@ -1946,7 +1946,7 @@ export const EDITOR_OBJECTS: EditorObjectType[] = [
     }
   },
   {
-    id: 'camera', name: 'Камера наблюдения', icon: '📹', category: 'items',
+    id: 'camera', name: 'Камера наблюдения', icon: '📹', category: 'scripts',
     create: () => {
       const g = new THREE.Group();
       // Крепление к потолку
@@ -1962,6 +1962,7 @@ export const EDITOR_OBJECTS: EditorObjectType[] = [
       g.add(pos(cyl(0.025, 0.025, 0.02, M.metalShiny, 12), 0, 3.42, 0.2));
       // LED индикатор
       g.add(pos(box(0.02, 0.02, 0.01, M.ledRed), 0.04, 3.45, 0.14));
+      g.userData.scriptType = 'camera';
       return g;
     }
   },
@@ -2219,6 +2220,37 @@ export const EDITOR_OBJECTS: EditorObjectType[] = [
       g.add(pos(box(0.1, 0.03, 0.03, pickupMat), 0, 0.9, 0));
       g.userData.scriptType = 'weapon_pickup';
       g.userData.weaponType = 'ak47';
+      return g;
+    }
+  },
+  {
+    id: 'terminal', name: 'Терминал камер', icon: '🖥️', category: 'scripts',
+    create: () => {
+      const g = new THREE.Group();
+      // Base/desk (dark metal stand)
+      g.add(pos(box(0.6, 0.7, 0.4, M.metalDark), 0, 0.35, 0));
+      // Top surface
+      g.add(pos(box(0.62, 0.03, 0.42, M.metalMid), 0, 0.71, 0));
+      // Monitor screen (angled slightly back)
+      const screen = box(0.5, 0.35, 0.03, M.screenGlow);
+      screen.position.set(0, 1.05, -0.1);
+      screen.rotation.x = -0.15;
+      g.add(screen);
+      // Monitor frame
+      const frame = box(0.54, 0.39, 0.02, M.metalDark);
+      frame.position.set(0, 1.05, -0.12);
+      frame.rotation.x = -0.15;
+      g.add(frame);
+      // Monitor stand/neck
+      g.add(pos(box(0.06, 0.15, 0.06, M.metalDark), 0, 0.8, -0.1));
+      // Keyboard area
+      g.add(pos(box(0.3, 0.02, 0.15, M.metalDark), 0, 0.73, 0.08));
+      // LED indicators (green emissive)
+      const ledGreen = new THREE.MeshStandardMaterial({ color: 0x00ff00, emissive: 0x00ff00, emissiveIntensity: 0.6 });
+      g.add(pos(box(0.015, 0.015, 0.01, ledGreen), -0.18, 0.74, -0.18));
+      g.add(pos(box(0.015, 0.015, 0.01, ledGreen), -0.15, 0.74, -0.18));
+      g.add(pos(box(0.015, 0.015, 0.01, M.ledRed), -0.12, 0.74, -0.18));
+      g.userData.scriptType = 'terminal';
       return g;
     }
   },

@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { FirstPersonController } from '../game/FirstPersonController';
 import { Hands } from '../game/Hands';
 import { Combat, CombatState } from '../game/Combat';
+import { CameraSystem, CameraSystemState } from '../game/CameraSystem';
 import { MapData } from './MapEditor';
 import { getObjectById } from './EditorObjects';
 import { soundSystem } from '../game/SoundSystem';
@@ -12,15 +13,20 @@ export class PlaytestMode {
   private controller: FirstPersonController;
   private hands: Hands;
   private combat: Combat;
+  private cameraSystem: CameraSystem;
   private colliders: THREE.Box3[] = [];
+  private inTerminalMode = false;
 
   private isRunning = false;
   private prevTime = 0;
   private footstepTimer = 0;
   private readonly FOOTSTEP_INTERVAL = 0.4;
 
+  private raycaster = new THREE.Raycaster();
+
   public onStatsUpdate?: (fps: number, pos: THREE.Vector3) => void;
   public onCombatUpdate?: (state: CombatState) => void;
+  public onCameraSystemUpdate?: (state: CameraSystemState) => void;
 
   private frameCount = 0;
   private fpsTime = 0;
@@ -60,6 +66,13 @@ export class PlaytestMode {
       this.onCombatUpdate?.(state);
     };
 
+    // Система камер наблюдения
+    this.cameraSystem = new CameraSystem(this.scene, this.renderer);
+    this.cameraSystem.onStateChange = (state) => {
+      this.inTerminalMode = state.inTerminalMode;
+      this.onCameraSystemUpdate?.(state);
+    };
+
     // Освещение
     this.scene.add(new THREE.AmbientLight(0x808080, 1.5));
     const sun = new THREE.DirectionalLight(0xffffff, 0.55);
@@ -85,13 +98,30 @@ export class PlaytestMode {
     // Коллизии
     this.controller.setColliders(this.colliders);
 
+    // E key for terminal interaction
+    document.addEventListener('keydown', this.onKeyDown);
+
     // Ресайз
     window.addEventListener('resize', this.onResize.bind(this));
   }
 
+  private onKeyDown = (event: KeyboardEvent) => {
+    if (event.code === 'KeyE' && document.pointerLockElement !== null) {
+      if (this.inTerminalMode) {
+        this.cameraSystem.exitTerminalMode();
+        return;
+      }
+      if (this.cameraSystem.terminalHighlighted) {
+        const playerPos = this.controller.camera.position;
+        this.cameraSystem.enterTerminalMode(playerPos);
+      }
+    }
+  };
+
   private loadMap(mapData: MapData, team: 'guard' | 'prisoner') {
     let spawnPoint: THREE.Vector3 | null = null;
     const spawnType = team === 'guard' ? 'spawn_guard' : 'spawn_prisoner';
+    let cameraCount = 0;
 
     for (const objData of mapData.objects) {
       const objType = getObjectById(objData.type);
@@ -109,6 +139,42 @@ export class PlaytestMode {
       if (objData.type === 'weapon_ak47') {
         this.combat.createDroppedWeaponAt(
           new THREE.Vector3(objData.position.x, objData.position.y + 0.5, objData.position.z)
+        );
+        continue;
+      }
+
+      // Terminal - register with camera system
+      if (objData.type === 'terminal') {
+        const obj = objType.create();
+        obj.position.set(objData.position.x, objData.position.y, objData.position.z);
+        obj.rotation.y = THREE.MathUtils.degToRad(objData.rotation);
+        this.scene.add(obj);
+        this.addColliders(obj);
+        const terminalPos = new THREE.Vector3(objData.position.x, objData.position.y, objData.position.z);
+        this.cameraSystem.registerTerminal(
+          `terminal_${objData.id}`,
+          obj,
+          terminalPos,
+          objData.groupId ?? 1
+        );
+        continue;
+      }
+
+      // Camera - register with camera system
+      if (objData.type === 'camera') {
+        cameraCount++;
+        const obj = objType.create();
+        obj.position.set(objData.position.x, objData.position.y, objData.position.z);
+        obj.rotation.y = THREE.MathUtils.degToRad(objData.rotation);
+        this.scene.add(obj);
+        const camPos = new THREE.Vector3(objData.position.x, objData.position.y + 3.4, objData.position.z);
+        const camRot = new THREE.Euler(-0.3, THREE.MathUtils.degToRad(objData.rotation), 0);
+        this.cameraSystem.registerCamera(
+          `cam_${objData.id}`,
+          camPos,
+          camRot,
+          objData.groupId ?? 1,
+          `Камера ${cameraCount}`
         );
         continue;
       }
@@ -182,29 +248,45 @@ export class PlaytestMode {
       this.fpsTime = 0;
     }
 
-    // Обновления
-    this.controller.update(delta);
+    // Skip movement in terminal mode
+    if (!this.inTerminalMode) {
+      // Обновления
+      this.controller.update(delta);
 
-    const isMoving = this.controller.isMoving();
-    this.hands.setWalking(isMoving);
-    this.hands.update(delta);
+      const isMoving = this.controller.isMoving();
+      this.hands.setWalking(isMoving);
+      this.hands.update(delta);
 
-    // Шаги
-    if (isMoving && document.pointerLockElement !== null) {
-      this.footstepTimer += delta;
-      if (this.footstepTimer >= this.FOOTSTEP_INTERVAL) {
-        soundSystem.playFootstep();
+      // Шаги
+      if (isMoving && document.pointerLockElement !== null) {
+        this.footstepTimer += delta;
+        if (this.footstepTimer >= this.FOOTSTEP_INTERVAL) {
+          soundSystem.playFootstep();
+          this.footstepTimer = 0;
+        }
+      } else {
         this.footstepTimer = 0;
       }
-    } else {
-      this.footstepTimer = 0;
-    }
 
-    this.combat.update(delta);
+      this.combat.update(delta);
+
+      // Terminal raycast
+      this.raycaster.setFromCamera(new THREE.Vector2(0, 0), this.controller.camera);
+      this.cameraSystem.checkRaycast(this.raycaster);
+    }
 
     this.onStatsUpdate?.(this.currentFps, this.controller.camera.position);
 
-    this.renderer.render(this.scene, this.controller.camera);
+    // Render
+    if (this.inTerminalMode && this.cameraSystem.selectedCameraIndex !== null) {
+      this.cameraSystem.update(delta, this.controller.camera);
+    } else {
+      this.renderer.render(this.scene, this.controller.camera);
+    }
+  }
+
+  selectCamera(index: number | null) {
+    this.cameraSystem.selectCamera(index);
   }
 
   dispose() {
@@ -212,6 +294,7 @@ export class PlaytestMode {
     this.renderer.dispose();
     this.controller.dispose();
     this.combat.dispose();
+    document.removeEventListener('keydown', this.onKeyDown);
     window.removeEventListener('resize', this.onResize.bind(this));
   }
 }

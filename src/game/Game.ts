@@ -6,6 +6,7 @@ import { Combat, CombatState } from './Combat';
 import { TeamSystem, Team, PlayerInfo } from './TeamSystem';
 import { RoundSystem, RoundState } from './RoundSystem';
 import { DoorSystem, Door } from './DoorSystem';
+import { CameraSystem, CameraSystemState } from './CameraSystem';
 import { soundSystem } from './SoundSystem';
 
 export interface DoorInteractionState {
@@ -23,6 +24,7 @@ export class Game {
   private hands: Hands;
   private combat: Combat;
   private doorSystem: DoorSystem;
+  private cameraSystem: CameraSystem;
   public teamSystem: TeamSystem;
   public roundSystem: RoundSystem;
 
@@ -31,11 +33,13 @@ export class Game {
   
   private currentTeam: Team = 'none';
   private spawnPoint: THREE.Vector3 = new THREE.Vector3(0, 1.7, 5);
+  private inTerminalMode = false;
 
   private onStatsUpdate?: (fps: number, pos: THREE.Vector3) => void;
   private onCombatUpdate?: (state: CombatState) => void;
   private onRoundUpdate?: (state: RoundState) => void;
   private onDoorInteraction?: (state: DoorInteractionState) => void;
+  private onCameraSystemUpdate?: (state: CameraSystemState) => void;
   
   private frameCount = 0;
   private fpsTime = 0;
@@ -44,6 +48,8 @@ export class Game {
   // Шаги
   private footstepTimer = 0;
   private readonly FOOTSTEP_INTERVAL = 0.4; // секунды между шагами
+
+  private raycaster = new THREE.Raycaster();
 
   private boundKeyDown = this.onKeyDown.bind(this);
   private boundWindowResize = this.onWindowResize.bind(this);
@@ -85,6 +91,16 @@ export class Game {
     for (const doorPos of this.prisonMap.cellDoorPositions) {
       this.doorSystem.createCellDoor(doorPos.cellIndex, doorPos.position);
     }
+
+    // Система камер наблюдения
+    this.cameraSystem = new CameraSystem(this.scene, this.renderer);
+    this.cameraSystem.onStateChange = (state) => {
+      this.inTerminalMode = state.inTerminalMode;
+      if (this.onCameraSystemUpdate) {
+        this.onCameraSystemUpdate(state);
+      }
+    };
+    this.setupSecurityCameras();
 
     // Руки
     this.hands = new Hands();
@@ -149,6 +165,17 @@ export class Game {
 
   private onKeyDown(event: KeyboardEvent) {
     if (event.code === 'KeyE' && document.pointerLockElement !== null) {
+      // If in terminal mode, exit
+      if (this.inTerminalMode) {
+        this.cameraSystem.exitTerminalMode();
+        return;
+      }
+      // Try to interact with terminal first
+      if (this.cameraSystem.terminalHighlighted) {
+        const playerPos = this.controller.camera.position;
+        this.cameraSystem.enterTerminalMode(playerPos);
+        return;
+      }
       this.tryInteractWithDoor();
     }
   }
@@ -256,6 +283,15 @@ export class Game {
     this.onDoorInteraction = callback;
   }
 
+  setOnCameraSystemUpdate(callback: (state: CameraSystemState) => void) {
+    this.onCameraSystemUpdate = callback;
+    callback(this.cameraSystem.getState());
+  }
+
+  selectSecurityCamera(index: number | null) {
+    this.cameraSystem.selectCamera(index);
+  }
+
   getTeam(): Team {
     return this.teamSystem.getTeam();
   }
@@ -272,6 +308,78 @@ export class Game {
 
   stop() {
     this.isRunning = false;
+  }
+
+  private setupSecurityCameras() {
+    // Create terminal mesh and add to scene
+    const terminalGroup = new THREE.Group();
+    // Base
+    const baseMat = new THREE.MeshStandardMaterial({ color: 0x3a3a3a, roughness: 0.3, metalness: 0.85 });
+    const screenMat = new THREE.MeshStandardMaterial({ color: 0x1a2a4a, roughness: 0.1, metalness: 0.3, emissive: 0x0a1a3a, emissiveIntensity: 0.3 });
+    const base = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.7, 0.4), baseMat);
+    base.position.set(0, 0.35, 0);
+    terminalGroup.add(base);
+    const screen = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.35, 0.03), screenMat);
+    screen.position.set(0, 1.05, -0.1);
+    screen.rotation.x = -0.15;
+    terminalGroup.add(screen);
+    const frameMat = new THREE.MeshStandardMaterial({ color: 0x3a3a3a, roughness: 0.3, metalness: 0.85 });
+    const frame = new THREE.Mesh(new THREE.BoxGeometry(0.54, 0.39, 0.02), frameMat);
+    frame.position.set(0, 1.05, -0.12);
+    frame.rotation.x = -0.15;
+    terminalGroup.add(frame);
+    const neck = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.15, 0.06), baseMat);
+    neck.position.set(0, 0.8, -0.1);
+    terminalGroup.add(neck);
+    // LED
+    const ledMat = new THREE.MeshStandardMaterial({ color: 0x00ff00, emissive: 0x00ff00, emissiveIntensity: 0.6 });
+    const led1 = new THREE.Mesh(new THREE.BoxGeometry(0.015, 0.015, 0.01), ledMat);
+    led1.position.set(-0.18, 0.74, -0.18);
+    terminalGroup.add(led1);
+    const led2 = new THREE.Mesh(new THREE.BoxGeometry(0.015, 0.015, 0.01), ledMat);
+    led2.position.set(-0.15, 0.74, -0.18);
+    terminalGroup.add(led2);
+
+    // Place terminal near the guard room (main corridor start)
+    const terminalPos = new THREE.Vector3(2.5, 0, 12);
+    terminalGroup.position.copy(terminalPos);
+    this.scene.add(terminalGroup);
+
+    this.cameraSystem.registerTerminal('terminal_1', terminalGroup, terminalPos, 1);
+
+    // Register security cameras at strategic positions
+    // Camera 1: Cell corridor
+    this.cameraSystem.registerCamera(
+      'cam_1',
+      new THREE.Vector3(-10, 3.5, -5),
+      new THREE.Euler(-0.3, Math.PI * 0.5, 0),
+      1,
+      'Коридор камер'
+    );
+    // Camera 2: Main corridor
+    this.cameraSystem.registerCamera(
+      'cam_2',
+      new THREE.Vector3(-2.5, 3.5, -10),
+      new THREE.Euler(-0.2, 0, 0),
+      1,
+      'Главный коридор'
+    );
+    // Camera 3: Yard entrance
+    this.cameraSystem.registerCamera(
+      'cam_3',
+      new THREE.Vector3(-5, 4, -16),
+      new THREE.Euler(-0.4, 0, 0),
+      1,
+      'Двор'
+    );
+    // Camera 4: Armory
+    this.cameraSystem.registerCamera(
+      'cam_4',
+      new THREE.Vector3(8, 3.5, 2),
+      new THREE.Euler(-0.2, -Math.PI * 0.5, 0),
+      1,
+      'Оружейная'
+    );
   }
 
   private animate() {
@@ -292,27 +400,30 @@ export class Game {
       this.fpsTime = 0;
     }
 
-    // Обновляем контроллер
-    this.controller.update(delta);
+    // Skip movement when in terminal mode
+    if (!this.inTerminalMode) {
+      // Обновляем контроллер
+      this.controller.update(delta);
 
-    // Проверяем движение для анимации рук
-    const isMoving = this.controller.isMoving();
-    this.hands.setWalking(isMoving);
-    this.hands.update(delta);
-    
-    // Звуки шагов
-    if (isMoving && document.pointerLockElement !== null) {
-      this.footstepTimer += delta;
-      if (this.footstepTimer >= this.FOOTSTEP_INTERVAL) {
-        soundSystem.playFootstep();
+      // Проверяем движение для анимации рук
+      const isMoving = this.controller.isMoving();
+      this.hands.setWalking(isMoving);
+      this.hands.update(delta);
+      
+      // Звуки шагов
+      if (isMoving && document.pointerLockElement !== null) {
+        this.footstepTimer += delta;
+        if (this.footstepTimer >= this.FOOTSTEP_INTERVAL) {
+          soundSystem.playFootstep();
+          this.footstepTimer = 0;
+        }
+      } else {
         this.footstepTimer = 0;
       }
-    } else {
-      this.footstepTimer = 0;
-    }
 
-    // Обновляем боевую систему
-    this.combat.update(delta);
+      // Обновляем боевую систему
+      this.combat.update(delta);
+    }
 
     // Обновляем систему раундов
     this.roundSystem.update(delta);
@@ -320,8 +431,14 @@ export class Game {
     // Обновляем двери
     this.doorSystem.update(delta);
 
+    // Terminal raycast detection (when not in terminal mode)
+    if (!this.inTerminalMode) {
+      this.raycaster.setFromCamera(new THREE.Vector2(0, 0), this.controller.camera);
+      this.cameraSystem.checkRaycast(this.raycaster);
+    }
+
     // Проверяем возможность взаимодействия с дверью
-    if (this.onDoorInteraction) {
+    if (this.onDoorInteraction && !this.inTerminalMode) {
       const playerPos = this.controller.camera.position;
       const { canInteract, door } = this.doorSystem.canInteract(playerPos);
       this.onDoorInteraction({
@@ -336,8 +453,12 @@ export class Game {
       this.onStatsUpdate(this.currentFps, this.controller.camera.position);
     }
 
-    // Рендерим
-    this.renderer.render(this.scene, this.controller.camera);
+    // Render: either from security camera or normal
+    if (this.inTerminalMode && this.cameraSystem.selectedCameraIndex !== null) {
+      this.cameraSystem.update(delta, this.controller.camera);
+    } else {
+      this.renderer.render(this.scene, this.controller.camera);
+    }
   }
 
   dispose() {

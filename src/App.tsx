@@ -9,6 +9,7 @@ import { MainMenu } from './components/MainMenu';
 import { CombatState } from './game/Combat';
 import { Team } from './game/TeamSystem';
 import { RoundState } from './game/RoundSystem';
+import { CameraSystemState } from './game/CameraSystem';
 import { soundSystem } from './game/SoundSystem';
 import { EditorApp } from './EditorApp';
 
@@ -43,6 +44,7 @@ const GameApp = ({ onBackToMenu }: GameAppProps) => {
   const [combatState, setCombatState] = useState<CombatState | null>(null);
   const [roundState, setRoundState] = useState<RoundState | null>(null);
   const [doorState, setDoorState] = useState<DoorInteractionState | null>(null);
+  const [cameraState, setCameraState] = useState<CameraSystemState | null>(null);
   
   const [teamSelected, setTeamSelected] = useState(false);
   const [currentTeam, setCurrentTeam] = useState<Team>('none');
@@ -102,6 +104,10 @@ const GameApp = ({ onBackToMenu }: GameAppProps) => {
 
     game.setOnDoorInteraction((state) => {
       setDoorState(state);
+    });
+
+    game.setOnCameraSystemUpdate((state) => {
+      setCameraState(state);
     });
 
     const handlePointerLockChange = () => {
@@ -202,6 +208,8 @@ const GameApp = ({ onBackToMenu }: GameAppProps) => {
           doorState={doorState}
           isWarden={isWarden}
           guardMenuOpen={guardMenuOpen}
+          cameraState={cameraState}
+          onSelectCamera={(index) => gameRef.current?.selectSecurityCamera(index)}
         />
       )}
     </div>

@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { CombatState } from '../game/Combat';
 import { Team } from '../game/TeamSystem';
 import { DoorInteractionState } from '../game/Game';
+import { CameraSystemState } from '../game/CameraSystem';
 
 interface GameUIProps {
   fps: number;
@@ -13,9 +14,11 @@ interface GameUIProps {
   doorState: DoorInteractionState | null;
   isWarden: boolean;
   guardMenuOpen: boolean;
+  cameraState: CameraSystemState | null;
+  onSelectCamera?: (index: number | null) => void;
 }
 
-export const GameUI = ({ fps, position, isLocked, combatState, team, teamName, doorState, isWarden: _isWarden, guardMenuOpen }: GameUIProps) => {
+export const GameUI = ({ fps, position, isLocked, combatState, team, teamName, doorState, isWarden: _isWarden, guardMenuOpen, cameraState, onSelectCamera }: GameUIProps) => {
   
   return (
     <div className="fixed inset-0 pointer-events-none select-none">
@@ -227,6 +230,77 @@ export const GameUI = ({ fps, position, isLocked, combatState, team, teamName, d
       )}
 
       {/* Роль игрока - теперь внизу слева над HP */}
+
+      {/* Terminal highlight hint */}
+      {isLocked && cameraState?.terminalHighlighted && !cameraState.inTerminalMode && (
+        <div className="absolute bottom-20 left-1/2 transform -translate-x-1/2">
+          <div className="bg-cyan-900/80 text-white px-6 py-3 rounded-lg">
+            <div className="font-bold">Терминал камер</div>
+            <div className="text-sm text-cyan-200">
+              Нажмите <span className="text-yellow-400 font-bold">E</span> для просмотра камер
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Terminal mode overlay */}
+      {isLocked && cameraState?.inTerminalMode && (
+        <div className="absolute inset-0 pointer-events-auto">
+          {/* Dark overlay background (only when in grid view) */}
+          {cameraState.selectedCameraIndex === null && (
+            <div className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center">
+              <div className="text-green-400 text-2xl font-bold mb-6 font-mono">СИСТЕМА НАБЛЮДЕНИЯ</div>
+              <div className="grid grid-cols-2 gap-4 w-[600px] max-w-[80vw]">
+                {cameraState.cameras.map((cam, idx) => (
+                  <div
+                    key={cam.id}
+                    className="bg-gray-900 border border-green-600/50 rounded-lg p-4 cursor-pointer hover:border-green-400 hover:bg-gray-800 transition-colors"
+                    onClick={() => onSelectCamera?.(idx)}
+                  >
+                    <div className="text-green-400 font-mono text-sm mb-1">CAM {idx + 1}</div>
+                    <div className="text-gray-300 text-lg">{cam.label}</div>
+                    <div className="mt-2 h-24 bg-gray-950 rounded flex items-center justify-center border border-gray-700">
+                      <span className="text-gray-500 text-sm font-mono">LIVE</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-6 text-gray-400 text-sm">
+                Нажмите <span className="text-yellow-400 font-bold">E</span> - Выйти
+              </div>
+            </div>
+          )}
+
+          {/* Zoomed camera view - HUD overlay */}
+          {cameraState.selectedCameraIndex !== null && (
+            <div className="absolute inset-0 flex flex-col">
+              {/* Top bar */}
+              <div className="bg-black/70 px-4 py-2 flex items-center justify-between">
+                <div className="text-green-400 font-mono text-sm">
+                  CAM {cameraState.selectedCameraIndex + 1} - {cameraState.cameras[cameraState.selectedCameraIndex]?.label}
+                </div>
+                <div className="text-green-400 font-mono text-sm animate-pulse">REC</div>
+              </div>
+              {/* Scanline effect */}
+              <div className="flex-1 relative pointer-events-none">
+                <div className="absolute inset-0 bg-gradient-to-b from-transparent via-green-400/[0.02] to-transparent bg-[length:100%_4px] animate-pulse"></div>
+              </div>
+              {/* Bottom bar */}
+              <div className="bg-black/70 px-4 py-2 flex items-center justify-between">
+                <div
+                  className="text-gray-300 text-sm cursor-pointer hover:text-white pointer-events-auto"
+                  onClick={() => onSelectCamera?.(null)}
+                >
+                  ← Назад к сетке
+                </div>
+                <div className="text-gray-400 text-sm">
+                  <span className="text-yellow-400 font-bold">E</span> - Выйти
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Экран смерти */}
       {isLocked && combatState?.isDead && (
