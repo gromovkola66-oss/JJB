@@ -155,6 +155,7 @@ export function createEnvironmentMap(renderer: THREE.WebGLRenderer): THREE.Textu
   const texture = renderTarget.texture;
 
   // Dispose intermediate objects
+  renderTarget.dispose();
   wallMat.dispose();
   floorGeo.dispose();
   pmremGenerator.dispose();

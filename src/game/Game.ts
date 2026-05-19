@@ -24,6 +24,7 @@ export class Game {
   private scene: THREE.Scene;
   private renderer: THREE.WebGLRenderer;
   private composer: EffectComposer;
+  private ssaoPass: SSAOPass;
 
   private prisonMap: PrisonMap;
   private controller: FirstPersonController;
@@ -110,6 +111,7 @@ export class Game {
     ssaoPass.kernelRadius = 8;
     ssaoPass.minDistance = 0.005;
     ssaoPass.maxDistance = 0.1;
+    this.ssaoPass = ssaoPass;
     this.composer.addPass(ssaoPass);
 
     const bloomPass = new UnrealBloomPass(
@@ -260,6 +262,10 @@ export class Game {
     this.controller.setPointerLockEnabled(enabled);
   }
 
+  setSSAOEnabled(enabled: boolean) {
+    this.ssaoPass.enabled = enabled;
+  }
+
   private onWindowResize() {
     const camera = this.controller.camera;
     camera.aspect = window.innerWidth / window.innerHeight;
@@ -380,6 +386,7 @@ export class Game {
     this.controller.dispose();
     this.combat.dispose();
     this.dustParticles.dispose();
+    this.prisonMap.dispose();
     document.removeEventListener('keydown', this.onKeyDown.bind(this));
     window.removeEventListener('resize', this.onWindowResize.bind(this));
   }

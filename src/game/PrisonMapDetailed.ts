@@ -395,6 +395,24 @@ export class PrisonMapDetailed {
     this.group.add(fill);
   }
 
+  dispose() {
+    // Dispose normal map textures (shared across materials)
+    const concreteNormal = this.mats['concrete'].normalMap;
+    if (concreteNormal) concreteNormal.dispose();
+
+    const metalNormal = this.mats['metal'].normalMap;
+    if (metalNormal) metalNormal.dispose();
+
+    // Dispose env map texture (shared across metal materials)
+    const envMap = this.mats['metal'].envMap;
+    if (envMap) envMap.dispose();
+
+    // Dispose all materials
+    for (const mat of Object.values(this.mats)) {
+      mat.dispose();
+    }
+  }
+
   private optimizeShadows() {
     const box = new THREE.Box3();
     const size = new THREE.Vector3();
