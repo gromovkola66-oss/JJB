@@ -103,6 +103,24 @@ const M = {
   barsRust: new THREE.MeshStandardMaterial({ color: 0x5a3a25, roughness: 0.6, metalness: 0.5 }),
   meshWire: new THREE.MeshStandardMaterial({ color: 0x555555, roughness: 0.3, metalness: 0.7 }),
   chainlink: new THREE.MeshStandardMaterial({ color: 0x888888, roughness: 0.25, metalness: 0.75 }),
+  // Краски
+  greenPaint: new THREE.MeshStandardMaterial({ color: 0x2d5a2d, roughness: 0.6 }),
+  orangePaint: new THREE.MeshStandardMaterial({ color: 0xff6b35, roughness: 0.6 }),
+  whitePaint: new THREE.MeshStandardMaterial({ color: 0xe8e8e0, roughness: 0.5 }),
+  // Спец-поверхности
+  rubberFloor: new THREE.MeshStandardMaterial({ color: 0x2a2a2a, roughness: 0.95 }),
+  chainMetal: new THREE.MeshStandardMaterial({ color: 0x4a4a4a, roughness: 0.25, metalness: 0.85 }),
+  yellowStripe: new THREE.MeshStandardMaterial({ color: 0xe6b800, roughness: 0.7 }),
+  // Ткань
+  fabricOrange: new THREE.MeshStandardMaterial({ color: 0xe85d2a, roughness: 0.92 }),
+  fabricKhaki: new THREE.MeshStandardMaterial({ color: 0x8a7a5a, roughness: 0.9 }),
+  // Экраны / свечение
+  screenGlow: new THREE.MeshStandardMaterial({ color: 0x1a2a4a, roughness: 0.1, metalness: 0.3, emissive: 0x0a1a3a, emissiveIntensity: 0.3 }),
+  emergRed: new THREE.MeshStandardMaterial({ color: 0xcc0000, roughness: 0.5, emissive: 0x880000, emissiveIntensity: 0.2 }),
+  // Проволока / ржавчина
+  barbedWire: new THREE.MeshStandardMaterial({ color: 0x5a5a5a, roughness: 0.4, metalness: 0.7 }),
+  rustPatch: new THREE.MeshStandardMaterial({ color: 0x6a3a1a, roughness: 0.85, metalness: 0.3 }),
+  agedStain: new THREE.MeshStandardMaterial({ color: 0x5a5548, roughness: 0.95 }),
 };
 
 export interface EditorObjectType {
@@ -143,6 +161,9 @@ export const EDITOR_OBJECTS: EditorObjectType[] = [
         g.add(pos(box(0.02, 4, 0.005, M.concDirty), i, 2, 0.148));
       }
       g.add(pos(box(4, 0.02, 0.005, M.concDirty), 0, 2, 0.148));
+      // Water stain patches
+      g.add(pos(box(0.6, 0.8, 0.005, M.agedStain), -1.2, 3.2, 0.148));
+      g.add(pos(box(0.4, 1.0, 0.005, M.agedStain), 1.5, 1.0, 0.148));
       return g;
     }
   },
@@ -168,6 +189,9 @@ export const EDITOR_OBJECTS: EditorObjectType[] = [
         g.add(pos(box(0.02, 0.01, 4, M.concDirty), i, 0.01, 0));
         g.add(pos(box(4, 0.01, 0.02, M.concDirty), 0, 0.01, i));
       }
+      // Scuff marks
+      g.add(pos(box(0.3, 0.005, 0.15, M.agedStain), 0.8, 0.015, -0.5));
+      g.add(pos(box(0.2, 0.005, 0.25, M.agedStain), -1.2, 0.015, 1.0));
       return g;
     }
   },
@@ -238,6 +262,9 @@ export const EDITOR_OBJECTS: EditorObjectType[] = [
         g.add(pos(box(0.75, 0.26, 0.005, i % 2 === 0 ? M.brick2 : M.brick3), rx, ry, 0.148));
       }
       g.add(pos(box(4, 0.15, 0.3, M.conc3), 0, 0.075, 0));
+      // Cracked mortar
+      g.add(pos(box(0.5, 0.015, 0.006, M.concDirty), -0.8, 2.5, 0.149));
+      g.add(pos(box(0.3, 0.015, 0.006, M.concDirty), 1.2, 1.8, 0.149));
       return g;
     }
   },
@@ -315,6 +342,8 @@ export const EDITOR_OBJECTS: EditorObjectType[] = [
       // Пятна
       g.add(pos(box(0.6, 0.005, 0.5, M.concDirty), 1.0, 0.01, -1.0));
       g.add(pos(box(0.4, 0.005, 0.7, M.concDirty), -0.8, 0.01, 0.8));
+      // Additional stain
+      g.add(pos(box(0.5, 0.005, 0.4, M.agedStain), -0.3, 0.012, -0.8));
       return g;
     }
   },
@@ -466,6 +495,73 @@ export const EDITOR_OBJECTS: EditorObjectType[] = [
         w2.position.set(-0.9 + i * 0.16, 1.5, 0);
         w2.rotation.z = -0.7;
         g.add(w2);
+      }
+      return g;
+    }
+  },
+
+  // --- Industrial Metal Wall Panel ---
+  {
+    id: 'wall_metal_panel', name: 'Металлическая панель', icon: '🔩', category: 'walls',
+    create: () => {
+      const g = new THREE.Group();
+      // Main panel
+      g.add(pos(box(4, 4, 0.25, M.metalMid), 0, 2, 0));
+      // Horizontal panel seams
+      for (const y of [1.0, 2.0, 3.0]) {
+        g.add(pos(box(4, 0.03, 0.01, M.metalDark), 0, y, 0.126));
+      }
+      // Vertical seams
+      for (const x of [-1.3, 0, 1.3]) {
+        g.add(pos(box(0.03, 4, 0.01, M.metalDark), x, 2, 0.126));
+      }
+      // Rivets at seam intersections
+      for (const x of [-1.3, 0, 1.3]) {
+        for (const y of [1.0, 2.0, 3.0, 3.8]) {
+          g.add(pos(cyl(0.025, 0.025, 0.02, M.metalShiny, 6), x, y, 0.136));
+        }
+      }
+      // Rust patches
+      g.add(pos(box(0.5, 0.4, 0.005, M.rustPatch), -1.0, 0.8, 0.128));
+      g.add(pos(box(0.4, 0.3, 0.005, M.rustPatch), 1.5, 2.5, 0.128));
+      g.add(pos(box(0.6, 0.35, 0.005, M.rustPatch), 0.3, 3.5, 0.128));
+      // Bottom corrosion strip
+      g.add(pos(box(4, 0.2, 0.005, M.metalRust), 0, 0.1, 0.128));
+      // Mounting bolt heads at corners
+      g.add(pos(cyl(0.03, 0.03, 0.02, M.metalDark, 6), -1.8, 0.2, 0.136));
+      g.add(pos(cyl(0.03, 0.03, 0.02, M.metalDark, 6), 1.8, 0.2, 0.136));
+      g.add(pos(cyl(0.03, 0.03, 0.02, M.metalDark, 6), -1.8, 3.8, 0.136));
+      g.add(pos(cyl(0.03, 0.03, 0.02, M.metalDark, 6), 1.8, 3.8, 0.136));
+      // Green paint section (lower panel)
+      g.add(pos(box(4, 1.2, 0.005, M.greenPaint), 0, 0.7, 0.128));
+      return g;
+    }
+  },
+  // --- Ventilation Duct Section ---
+  {
+    id: 'wall_vent_duct', name: 'Вентиляционный короб', icon: '🌀', category: 'walls',
+    create: () => {
+      const g = new THREE.Group();
+      // Main rectangular duct body
+      g.add(pos(box(4, 1.0, 0.8, M.metalLight), 0, 3.0, 0));
+      // Seam lines along length (top and bottom edges)
+      g.add(pos(box(4, 0.02, 0.01, M.metalDark), 0, 3.5, 0.4));
+      g.add(pos(box(4, 0.02, 0.01, M.metalDark), 0, 2.5, 0.4));
+      // Mounting brackets (L-brackets)
+      for (const x of [-1.5, 0, 1.5]) {
+        g.add(pos(box(0.08, 0.2, 0.06, M.metalDark), x, 2.4, 0));
+        g.add(pos(box(0.08, 0.06, 0.2, M.metalDark), x, 2.5, -0.3));
+      }
+      // End flange
+      g.add(pos(box(0.08, 1.05, 0.85, M.metalMid), 2.0, 3.0, 0));
+      // Surface dents (overlay patches)
+      g.add(pos(box(0.5, 0.4, 0.01, M.metalMid), -0.8, 3.1, 0.41));
+      g.add(pos(box(0.4, 0.3, 0.01, M.metalMid), 1.0, 2.9, 0.41));
+      g.add(pos(box(0.35, 0.35, 0.01, M.metalMid), 0.2, 3.2, 0.41));
+      // Screws at bracket points
+      for (const x of [-1.5, 0, 1.5]) {
+        g.add(pos(cyl(0.02, 0.02, 0.015, M.metalShiny, 6), x, 2.35, 0.02));
+        g.add(pos(cyl(0.02, 0.02, 0.015, M.metalShiny, 6), x, 2.52, -0.35));
       }
       return g;
     }
@@ -1984,6 +2080,166 @@ export const EDITOR_OBJECTS: EditorObjectType[] = [
       light.position.set(0, 2.5, 0);
       g.add(light);
       g.userData.hasLight = true;
+      return g;
+    }
+  },
+  // --- Full Staircase with Landing ---
+  {
+    id: 'staircase_detailed', name: 'Лестница с площадкой', icon: '🪜', category: 'building',
+    create: () => {
+      const g = new THREE.Group();
+      // 8 steps: treads and risers
+      for (let i = 0; i < 8; i++) {
+        const sy = i * 0.5;
+        const sz = -i * 0.5;
+        // Tread
+        g.add(pos(box(2, 0.12, 0.5, M.conc2), 0, sy + 0.5, sz));
+        // Riser
+        g.add(pos(box(2, 0.38, 0.06, M.conc3), 0, sy + 0.25, sz + 0.23));
+        // Anti-slip strip on each tread
+        g.add(pos(box(1.8, 0.01, 0.08, M.yellowStripe), 0, sy + 0.56, sz + 0.2));
+        // Nosing detail on each step edge
+        g.add(pos(box(2, 0.04, 0.04, M.metalLight), 0, sy + 0.55, sz + 0.24));
+      }
+      // Side stringers
+      for (const dx of [-1.03, 1.03]) {
+        for (let i = 0; i < 8; i++) {
+          const h = 0.56 + i * 0.5;
+          g.add(pos(box(0.06, h, 0.52, M.concDirty), dx, h / 2, -i * 0.5));
+        }
+      }
+      // Handrail on one side: vertical posts + horizontal top rail
+      for (let i = 0; i < 5; i++) {
+        const py = i * 1.0 + 0.8;
+        const pz = -i * 1.0;
+        g.add(pos(cyl(0.03, 0.03, 0.8, M.metalDark), 1.03, py, pz));
+      }
+      g.add(pos(box(0.04, 0.04, 4.5, M.metalDark), 1.03, 4.4, -1.8));
+      // Landing platform at top
+      g.add(pos(box(2, 0.15, 1.5, M.conc2), 0, 4.07, -4.5));
+      // Rubber mat on landing
+      g.add(pos(box(1.8, 0.01, 1.3, M.rubberFloor), 0, 4.15, -4.5));
+      return g;
+    }
+  },
+  // --- Smooth Ramp with Safety Rails ---
+  {
+    id: 'ramp_detailed', name: 'Пандус с ограждением', icon: '📐', category: 'building',
+    create: () => {
+      const g = new THREE.Group();
+      // Main ramp surface (rotated for slope)
+      const rampMesh = box(2, 0.15, 5, M.conc2);
+      rampMesh.position.set(0, 1.0, 0);
+      rampMesh.rotation.x = 0.2;
+      g.add(rampMesh);
+      // Non-slip texture strips across width
+      for (let i = -2; i <= 2; i += 0.5) {
+        const strip = box(1.8, 0.01, 0.08, M.yellowStripe);
+        strip.position.set(0, 1.05, i);
+        strip.rotation.x = 0.2;
+        g.add(strip);
+      }
+      // Safety rails on both sides: posts + top rail
+      for (const dx of [-1.02, 1.02]) {
+        for (let z = -2; z <= 2; z += 1.0) {
+          const postH = 0.8;
+          const postY = 1.0 + Math.tan(0.2) * (-z) + postH / 2;
+          g.add(pos(cyl(0.03, 0.03, postH, M.metalDark), dx, postY, z));
+        }
+        // Top rail
+        const rail = box(0.04, 0.04, 5, M.metalDark);
+        rail.position.set(dx, 1.8, 0);
+        rail.rotation.x = 0.2;
+        g.add(rail);
+      }
+      // Landing pads at top and bottom
+      g.add(pos(box(2, 0.15, 1.0, M.conc2), 0, 0.075, -3.0));
+      g.add(pos(box(2, 0.15, 1.0, M.conc2), 0, 2.0, 3.0));
+      // Orange safety markings on landing edges
+      g.add(pos(box(2, 0.02, 0.1, M.orangePaint), 0, 0.16, -2.55));
+      g.add(pos(box(2, 0.02, 0.1, M.emergRed), 0, 2.08, 2.55));
+      // Edge trim along sides
+      const trimL = box(0.04, 0.18, 5, M.metalDark);
+      trimL.position.set(-1.0, 1.0, 0);
+      trimL.rotation.x = 0.2;
+      g.add(trimL);
+      const trimR = box(0.04, 0.18, 5, M.metalDark);
+      trimR.position.set(1.0, 1.0, 0);
+      trimR.rotation.x = 0.2;
+      g.add(trimR);
+      return g;
+    }
+  },
+  // --- Decorative Fluted Column ---
+  {
+    id: 'pillar_fluted', name: 'Колонна рифлёная', icon: '🏛️', category: 'building',
+    create: () => {
+      const g = new THREE.Group();
+      // Main cylinder shaft
+      g.add(pos(cyl(0.25, 0.25, 3.2, M.conc1, 16), 0, 1.9, 0));
+      // Base (wider)
+      g.add(pos(box(0.7, 0.3, 0.7, M.conc3), 0, 0.15, 0));
+      // Capital (wider with molding)
+      g.add(pos(box(0.65, 0.2, 0.65, M.conc2), 0, 3.6, 0));
+      g.add(pos(box(0.6, 0.1, 0.6, M.conc1), 0, 3.75, 0));
+      // Fluting detail: thin vertical boxes pressed against column surface
+      for (let i = 0; i < 8; i++) {
+        const angle = (i / 8) * Math.PI * 2;
+        const fx = Math.sin(angle) * 0.26;
+        const fz = Math.cos(angle) * 0.26;
+        g.add(pos(box(0.03, 3.0, 0.015, M.concDirty), fx, 1.9, fz));
+      }
+      // Surface wear patches at base
+      g.add(pos(box(0.3, 0.4, 0.01, M.agedStain), 0.15, 0.5, 0.25));
+      g.add(pos(box(0.25, 0.3, 0.01, M.agedStain), -0.1, 0.4, -0.25));
+      // White paint band (marking)
+      g.add(pos(box(0.04, 0.3, 0.04, M.whitePaint), 0.26, 1.2, 0));
+      return g;
+    }
+  },
+  // --- Chain-link Fence with Barbed Wire ---
+  {
+    id: 'fence_barbed_wire', name: 'Забор с колючкой', icon: '⚡', category: 'building',
+    create: () => {
+      const g = new THREE.Group();
+      // Posts
+      g.add(pos(cyl(0.05, 0.05, 2.5, M.metalDark), -2, 1.25, 0));
+      g.add(pos(cyl(0.05, 0.05, 2.5, M.metalDark), 2, 1.25, 0));
+      // Post caps
+      g.add(pos(cyl(0.06, 0.06, 0.04, M.metalMid), -2, 2.52, 0));
+      g.add(pos(cyl(0.06, 0.06, 0.04, M.metalMid), 2, 2.52, 0));
+      // Top rail
+      g.add(pos(box(4, 0.06, 0.06, M.metalDark), 0, 2.5, 0));
+      // Bottom rail
+      g.add(pos(box(4, 0.06, 0.06, M.metalDark), 0, 0.1, 0));
+      // Chain link mesh: diagonal crossing thin boxes
+      for (let i = 0; i < 16; i++) {
+        const w = box(0.015, 0.015, 2.2, M.chainMetal);
+        w.position.set(-1.8 + i * 0.24, 1.25, 0);
+        w.rotation.z = 0.7;
+        g.add(w);
+        const w2 = box(0.015, 0.015, 2.2, M.chainMetal);
+        w2.position.set(-1.8 + i * 0.24, 1.25, 0);
+        w2.rotation.z = -0.7;
+        g.add(w2);
+      }
+      // Tension bars (thin vertical elements on each side)
+      g.add(pos(box(0.02, 2.3, 0.02, M.metalDark), -1.9, 1.25, 0));
+      g.add(pos(box(0.02, 2.3, 0.02, M.metalDark), 1.9, 1.25, 0));
+      // Barbed wire coils on top (2 rows)
+      for (let row = 0; row < 2; row++) {
+        const ry = 2.65 + row * 0.2;
+        for (let i = 0; i < 12; i++) {
+          const a = (i / 12) * Math.PI * 6;
+          const x = (i / 12) * 4 - 2;
+          g.add(pos(cyl(0.008, 0.008, 0.1, M.barbedWire), x, ry + Math.sin(a) * 0.08, Math.cos(a) * 0.08));
+        }
+      }
+      // Warning sign on fence
+      g.add(pos(box(0.4, 0.3, 0.02, M.screenGlow), -0.5, 1.6, 0.04));
+      // Fabric strips caught in fence
+      g.add(pos(box(0.15, 0.25, 0.02, M.fabricOrange), 0.8, 1.8, 0.02));
+      g.add(pos(box(0.12, 0.2, 0.02, M.fabricKhaki), -1.2, 1.3, 0.02));
       return g;
     }
   },
