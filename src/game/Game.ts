@@ -104,16 +104,13 @@ export class Game {
     this.scene.add(camera);
 
     // Post-processing pipeline
-    this.renderer.outputColorSpace = THREE.SRGBColorSpace;
-
     this.composer = new EffectComposer(this.renderer);
     this.composer.addPass(new RenderPass(this.scene, camera));
 
     const ssaoPass = new SSAOPass(this.scene, camera, window.innerWidth, window.innerHeight);
-    ssaoPass.kernelRadius = 4;
+    ssaoPass.kernelRadius = 8;
     ssaoPass.minDistance = 0.005;
     ssaoPass.maxDistance = 0.1;
-    ssaoPass.enabled = false; // Disabled by default - expensive and breaks on some GPUs
     this.ssaoPass = ssaoPass;
     this.composer.addPass(ssaoPass);
 
@@ -379,11 +376,7 @@ export class Game {
     }
 
     // Рендерим
-    try {
-      this.composer.render(delta);
-    } catch {
-      this.renderer.render(this.scene, this.controller.camera);
-    }
+    this.composer.render(delta);
   }
 
   dispose() {

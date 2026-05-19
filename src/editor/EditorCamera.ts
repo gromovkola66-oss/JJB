@@ -17,13 +17,6 @@ export class EditorCamera {
   private fastSpeed = 30;
   private shiftPressed = false;
 
-  private boundKeyDown = this.onKeyDown.bind(this);
-  private boundKeyUp = this.onKeyUp.bind(this);
-  private boundMouseDown = this.onMouseDown.bind(this);
-  private boundMouseUp = this.onMouseUp.bind(this);
-  private boundMouseMove = this.onMouseMove.bind(this);
-  private boundWheel = this.onWheel.bind(this);
-
   constructor() {
     this.camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
     this.camera.position.set(0, 10, 20);
@@ -33,12 +26,12 @@ export class EditorCamera {
   }
 
   private setupEvents() {
-    document.addEventListener('keydown', this.boundKeyDown);
-    document.addEventListener('keyup', this.boundKeyUp);
-    document.addEventListener('mousedown', this.boundMouseDown);
-    document.addEventListener('mouseup', this.boundMouseUp);
-    document.addEventListener('mousemove', this.boundMouseMove);
-    document.addEventListener('wheel', this.boundWheel);
+    document.addEventListener('keydown', this.onKeyDown.bind(this));
+    document.addEventListener('keyup', this.onKeyUp.bind(this));
+    document.addEventListener('mousedown', this.onMouseDown.bind(this));
+    document.addEventListener('mouseup', this.onMouseUp.bind(this));
+    document.addEventListener('mousemove', this.onMouseMove.bind(this));
+    document.addEventListener('wheel', this.onWheel.bind(this));
   }
 
   private onKeyDown(e: KeyboardEvent) {
@@ -74,13 +67,13 @@ export class EditorCamera {
   }
 
   private onMouseDown(e: MouseEvent) {
-    if (e.button === 2 || e.button === 1) {
+    if (e.button === 2) {
       this.isRightMouseDown = true;
     }
   }
 
   private onMouseUp(e: MouseEvent) {
-    if (e.button === 2 || e.button === 1) {
+    if (e.button === 2) {
       this.isRightMouseDown = false;
     }
   }
@@ -134,11 +127,11 @@ export class EditorCamera {
   }
 
   dispose() {
-    document.removeEventListener('keydown', this.boundKeyDown);
-    document.removeEventListener('keyup', this.boundKeyUp);
-    document.removeEventListener('mousedown', this.boundMouseDown);
-    document.removeEventListener('mouseup', this.boundMouseUp);
-    document.removeEventListener('mousemove', this.boundMouseMove);
-    document.removeEventListener('wheel', this.boundWheel);
+    document.removeEventListener('keydown', this.onKeyDown.bind(this));
+    document.removeEventListener('keyup', this.onKeyUp.bind(this));
+    document.removeEventListener('mousedown', this.onMouseDown.bind(this));
+    document.removeEventListener('mouseup', this.onMouseUp.bind(this));
+    document.removeEventListener('mousemove', this.onMouseMove.bind(this));
+    document.removeEventListener('wheel', this.onWheel.bind(this));
   }
 }
