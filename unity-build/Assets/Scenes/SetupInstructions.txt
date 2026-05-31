@@ -1,0 +1,25 @@
+SCP: Breach - Card Game
+========================
+Scene Setup Instructions
+========================
+
+Since the game UI is built entirely at runtime by SceneSetup.cs,
+you only need a minimal scene to get started:
+
+1. In Unity, create a new Scene (File > New Scene > Basic)
+2. Add an empty GameObject (GameObject > Create Empty)
+3. Rename it to "GameBootstrap"
+4. In the Inspector, click "Add Component"
+5. Search for "SceneSetup" and attach it
+6. Press Play!
+
+The SceneSetup script will automatically create:
+- Canvas with CanvasScaler (1920x1080 reference)
+- EventSystem for UI interaction
+- GameManager with all subsystems (TurnManager, BattleSystem, DeckManager)
+- Faction selection overlay
+- Full game board (HP bars, hand panels, field slots, sidebar)
+- Win screen overlay
+- Card prefab template
+
+No manual UI setup is required. Everything is wired programmatically.
