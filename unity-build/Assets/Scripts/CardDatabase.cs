@@ -199,7 +199,7 @@ namespace SCPBreach
         private static List<CardData> CreateItemCards()
         {
             List<CardData> cards = new List<CardData>();
-            Faction f = Faction.MOG;
+            Faction f = Faction.None;
             CardType t = CardType.Item;
 
             cards.Add(CreateCard("SCP-500 Панацея", f, t, 0, 0, "Восстановить 5 HP игроку", ItemEffect.Heal5HP));

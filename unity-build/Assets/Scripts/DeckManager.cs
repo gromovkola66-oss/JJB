@@ -14,14 +14,17 @@ namespace SCPBreach
 
             // Add faction cards (up to 30, duplicating if needed)
             int factionCount = 0;
-            while (factionCount < 30 && factionCards.Count > 0)
+            if (factionCards.Count > 0)
             {
-                foreach (CardData card in factionCards)
+                while (factionCount < 30)
                 {
-                    if (factionCount >= 30)
-                        break;
-                    deck.Add(card);
-                    factionCount++;
+                    foreach (CardData card in factionCards)
+                    {
+                        if (factionCount >= 30)
+                            break;
+                        deck.Add(card);
+                        factionCount++;
+                    }
                 }
             }
 

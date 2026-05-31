@@ -641,14 +641,11 @@ namespace SCPBreach
                 Button slotBtn = slot.AddComponent<Button>();
                 slotBtn.targetGraphic = slotImg;
                 int slotIndex = i;
-                if (isPlayer1)
+                slotBtn.onClick.AddListener(() =>
                 {
-                    slotBtn.onClick.AddListener(() =>
-                    {
-                        if (playerController != null)
-                            playerController.OnFieldSlotClicked(slotIndex);
-                    });
-                }
+                    if (playerController != null)
+                        playerController.OnFieldSlotClicked(slotIndex);
+                });
 
                 slots[i] = slot.transform;
             }

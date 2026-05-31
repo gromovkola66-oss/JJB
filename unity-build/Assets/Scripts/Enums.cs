@@ -2,6 +2,7 @@ namespace SCPBreach
 {
     public enum Faction
     {
+        None,
         MOG,
         Chaos,
         GOC

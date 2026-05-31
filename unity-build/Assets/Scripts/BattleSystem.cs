@@ -7,12 +7,6 @@ namespace SCPBreach
     {
         public void ExecuteBattle(PlayerState attacker, PlayerState defender)
         {
-            if (attacker.skipNextBattle)
-            {
-                attacker.skipNextBattle = false;
-                return;
-            }
-
             for (int slot = 0; slot < 3; slot++)
             {
                 CardInstance attackerCard = attacker.field[slot];

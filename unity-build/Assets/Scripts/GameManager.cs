@@ -33,13 +33,9 @@ namespace SCPBreach
             player1.faction = p1Faction;
             player2.faction = p2Faction;
 
-            // Build decks
+            // Build decks (BuildDeck already shuffles internally)
             player1.deck = deckManager.BuildDeck(p1Faction);
             player2.deck = deckManager.BuildDeck(p2Faction);
-
-            // Shuffle decks
-            deckManager.ShuffleDeck(player1.deck);
-            deckManager.ShuffleDeck(player2.deck);
 
             // Draw starting hands (5 cards each)
             for (int i = 0; i < 5; i++)
