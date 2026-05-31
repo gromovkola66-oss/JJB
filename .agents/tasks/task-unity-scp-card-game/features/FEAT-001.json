@@ -1,0 +1,39 @@
+{
+  "id": "FEAT-001",
+  "type": "feat",
+  "description": "Create the Unity project skeleton, ProjectSettings, and all core C# game scripts including: CardData ScriptableObject, GameManager, TurnManager, DeckManager, BattleSystem, PlayerController, UIManager, and ItemCardEffect. These scripts implement the full game logic per the GDD: 30 HP per player, turn structure (draw/play/battle/end), mutual combat, 3 field slots per player, item effects, and win conditions.",
+  "status": "in_progress",
+  "steps": [
+    "Create Unity project directory structure: unity-build/Assets/Scripts/, unity-build/Assets/Resources/Cards/MOG/, unity-build/Assets/Resources/Cards/Chaos/, unity-build/Assets/Resources/Cards/GOC/, unity-build/Assets/Resources/Cards/Items/, unity-build/Assets/Scenes/, unity-build/Assets/Prefabs/, unity-build/ProjectSettings/, unity-build/Packages/",
+    "Create ProjectSettings/ProjectSettings.asset with Unity 2021.3 LTS settings (player settings, company name, product name 'SCP Breach Card Game')",
+    "Create Packages/manifest.json with required Unity packages (com.unity.ugui, com.unity.textmeshpro)",
+    "Create Assets/Scripts/CardData.cs - ScriptableObject with fields: cardName, faction (enum: MOG, Chaos, GOC, Item), cardType (enum: Unit, Item), attack (int), defense (int), description (string), itemEffect (enum: None, Heal5HP, Deal4Damage, Plus3DEF, SkipBattle, DestroyLowestDEF)",
+    "Create Assets/Scripts/Enums.cs - shared enums: Faction, CardType, ItemEffect, GamePhase, GameState",
+    "Create Assets/Scripts/PlayerState.cs - class holding: hp (30), hand (List<CardData>), deck (List<CardData>), field (CardData[3] with current DEF tracking), discardPile",
+    "Create Assets/Scripts/CardInstance.cs - runtime card instance with currentDEF separate from base DEF, reference to CardData",
+    "Create Assets/Scripts/DeckManager.cs - handles deck creation from faction cards + items, shuffling, drawing cards",
+    "Create Assets/Scripts/BattleSystem.cs - implements combat: mutual damage between opposing field cards, direct HP damage when no opposing card, item card effects (SCP-500 heal, SCP-127 random damage, SCP-714 +3 DEF, SCP-268 skip battle, SCP-063 destroy lowest DEF)",
+    "Create Assets/Scripts/TurnManager.cs - manages turn phases (Draw, Play, Battle, End), tracks current player, handles turn switching, enforces 1 card play per turn",
+    "Create Assets/Scripts/GameManager.cs - main game controller: initializes game, manages game state, coordinates between TurnManager/BattleSystem/UIManager, handles win/loss conditions (HP=0, empty deck penalty of 3 HP per missed draw)",
+    "Create Assets/Scripts/PlayerController.cs - handles player input: selecting cards from hand, choosing field slot to place card, selecting attack targets, end turn button interaction",
+    "Create Assets/Scripts/UIManager.cs - manages all UI elements: HP bars, hand display, field slots display, deck counter, turn indicator, phase indicator, end turn button, win/lose screen, faction selection screen",
+    "Create Assets/Scripts/CardUI.cs - UI component for individual card display: shows name, ATK, DEF as text on a colored rectangle (color per faction)",
+    "Create Assets/Scripts/FactionSelectUI.cs - faction selection screen at game start for both players"
+  ],
+  "acceptance_criteria": [
+    "All .cs files exist in unity-build/Assets/Scripts/ with valid C# syntax",
+    "CardData ScriptableObject has CreateAssetMenu attribute for easy creation",
+    "GameManager implements singleton pattern and coordinates all systems",
+    "BattleSystem correctly implements mutual combat and all 5 item effects",
+    "TurnManager enforces the 4-phase turn structure from the GDD",
+    "UIManager provides complete game UI without requiring external art assets",
+    "ProjectSettings and Packages/manifest.json are valid for Unity 2021.3+"
+  ],
+  "verification": [
+    "Check that all expected .cs files exist in the Scripts folder",
+    "Validate C# syntax of key files using pattern matching for class declarations, proper using statements, and MonoBehaviour/ScriptableObject inheritance",
+    "Verify ProjectSettings/ProjectSettings.asset and Packages/manifest.json exist with correct content"
+  ],
+  "blocked_reason": null,
+  "findings": ""
+}
