@@ -9,17 +9,16 @@ Each faction has 30 unique cards with distinct stat distributions, plus 5 shared
 ## Requirements
 
 - Unity 2021.3 LTS or newer (2022.3 also works)
-- TextMeshPro package (included via Packages/manifest.json)
 
 ## Quick Start
 
-1. Open this folder as a Unity project (File > Open Project, select the `unity-build` folder)
-2. Unity will import all assets and compile scripts
-3. If prompted to import TextMeshPro essentials, click "Import TMP Essentials"
-4. Create a new Scene (File > New Scene) or open Assets/Scenes/MainScene
-5. Create an empty GameObject (GameObject > Create Empty), name it "GameBootstrap"
-6. Attach the `SceneSetup` script (from Assets/Scripts/) to the GameBootstrap object
-7. Press Play - the entire game UI builds itself automatically!
+1. Create any new Unity project (2D or 3D, any template)
+2. Copy the `Scripts` folder into your project's `Assets/` folder
+3. Press Play
+
+That's it - no TextMeshPro import, no manual GameObject creation needed.
+
+The game auto-bootstraps via `[RuntimeInitializeOnLoadMethod]` and builds the entire UI at runtime.
 
 ## How to Play
 
@@ -56,7 +55,7 @@ All factions share 5 item cards mixed into the deck:
 ```
 Assets/
   Scripts/         - All C# game logic
-    SceneSetup.cs  - Bootstrapper that creates full UI at runtime
+    SceneSetup.cs  - Bootstrapper that creates full UI at runtime (auto-boots)
     GameManager.cs - Main game controller (singleton)
     TurnManager.cs - Phase management (Draw/Play/Battle/End)
     BattleSystem.cs- Combat resolution and item effects
@@ -81,7 +80,8 @@ ProjectSettings/   - Unity project settings
 
 - All 95 cards are defined programmatically in `CardDatabase.cs` (no asset files needed)
 - UI is built entirely at runtime by `SceneSetup.cs` (no prefab dependencies)
-- The game works with just an empty scene + a single GameObject with `SceneSetup` attached
+- Uses only built-in UnityEngine.UI.Text (no TextMeshPro dependency)
+- The game auto-starts in any scene without any manual setup
 - No external textures or art assets required - cards are colored rectangles with text
 - Screen resolution: designed for 1920x1080, scales with CanvasScaler
 

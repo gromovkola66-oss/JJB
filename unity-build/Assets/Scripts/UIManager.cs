@@ -1,14 +1,13 @@
 using UnityEngine;
 using UnityEngine.UI;
-using TMPro;
 
 namespace SCPBreach
 {
     public class UIManager : MonoBehaviour
     {
         [Header("HP Display")]
-        public TextMeshProUGUI player1HPText;
-        public TextMeshProUGUI player2HPText;
+        public Text player1HPText;
+        public Text player2HPText;
         public Slider player1HPBar;
         public Slider player2HPBar;
 
@@ -21,9 +20,9 @@ namespace SCPBreach
         public Transform[] player2FieldSlots = new Transform[3];
 
         [Header("Game Info")]
-        public TextMeshProUGUI phaseIndicatorText;
-        public TextMeshProUGUI turnIndicatorText;
-        public TextMeshProUGUI deckCountText;
+        public Text phaseIndicatorText;
+        public Text turnIndicatorText;
+        public Text deckCountText;
 
         [Header("Buttons")]
         public Button endTurnButton;
@@ -31,7 +30,7 @@ namespace SCPBreach
         [Header("Screens")]
         public GameObject factionSelectPanel;
         public GameObject winScreenPanel;
-        public TextMeshProUGUI winnerText;
+        public Text winnerText;
 
         [Header("Prefabs")]
         public GameObject cardPrefab;
@@ -57,19 +56,18 @@ namespace SCPBreach
             if (handPanel == null)
                 return;
 
-            // Clear existing cards
             foreach (Transform child in handPanel)
             {
                 Destroy(child.gameObject);
             }
 
-            // Create card UI for each card in hand
             for (int i = 0; i < player.hand.Count; i++)
             {
                 if (cardPrefab == null)
                     break;
 
                 GameObject cardObj = Instantiate(cardPrefab, handPanel);
+                cardObj.SetActive(true);
                 CardUI cardUI = cardObj.GetComponent<CardUI>();
                 if (cardUI != null)
                 {
@@ -103,16 +101,15 @@ namespace SCPBreach
                 if (i >= slotTransforms.Length || slotTransforms[i] == null)
                     continue;
 
-                // Clear slot
                 foreach (Transform child in slotTransforms[i])
                 {
                     Destroy(child.gameObject);
                 }
 
-                // If there's a card in this slot, display it
                 if (field[i] != null && cardPrefab != null)
                 {
                     GameObject cardObj = Instantiate(cardPrefab, slotTransforms[i]);
+                    cardObj.SetActive(true);
                     CardUI cardUI = cardObj.GetComponent<CardUI>();
                     if (cardUI != null)
                     {
@@ -134,7 +131,6 @@ namespace SCPBreach
                 turnIndicatorText.text = "Player " + playerNum + "'s Turn";
             }
 
-            // Enable/disable end turn button based on phase
             if (endTurnButton != null)
             {
                 endTurnButton.interactable = (phase == GamePhase.PlayPhase);

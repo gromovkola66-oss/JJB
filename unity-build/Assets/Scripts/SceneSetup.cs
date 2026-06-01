@@ -1,14 +1,13 @@
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
-using UnityEngine.SceneManagement;
-using TMPro;
 
 namespace SCPBreach
 {
     public class SceneSetup : MonoBehaviour
     {
-        // Colors
+        private static Font _defaultFont;
+
         private static readonly Color BgColor = new Color(0.1f, 0.1f, 0.18f, 1f);
         private static readonly Color PanelColor = new Color(0.12f, 0.12f, 0.22f, 0.95f);
         private static readonly Color SlotColor = new Color(0.086f, 0.13f, 0.24f, 1f);
@@ -20,6 +19,27 @@ namespace SCPBreach
         private UIManager uiManager;
         private GameManager gameManager;
         private PlayerController playerController;
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
+        private static void AutoBoot()
+        {
+            if (Object.FindObjectOfType<SceneSetup>() == null && Object.FindObjectOfType<GameManager>() == null)
+            {
+                GameObject boot = new GameObject("GameBootstrap");
+                boot.AddComponent<SceneSetup>();
+            }
+        }
+
+        private static Font GetFont()
+        {
+            if (_defaultFont == null)
+                _defaultFont = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            if (_defaultFont == null)
+                _defaultFont = Resources.GetBuiltinResource<Font>("Arial.ttf");
+            if (_defaultFont == null)
+                _defaultFont = Font.CreateDynamicFontFromOSFont("Arial", 14);
+            return _defaultFont;
+        }
 
         private void Awake()
         {
@@ -35,645 +55,467 @@ namespace SCPBreach
 
         private void CreateEventSystem()
         {
-            GameObject esGO = new GameObject("EventSystem");
-            esGO.AddComponent<EventSystem>();
-            esGO.AddComponent<StandaloneInputModule>();
+            if (FindObjectOfType<EventSystem>() == null)
+            {
+                GameObject esObj = new GameObject("EventSystem");
+                esObj.AddComponent<EventSystem>();
+                esObj.AddComponent<StandaloneInputModule>();
+            }
         }
 
         private void CreateCanvas()
         {
-            GameObject canvasGO = new GameObject("MainCanvas");
-            mainCanvas = canvasGO.AddComponent<Canvas>();
+            GameObject canvasObj = new GameObject("MainCanvas");
+            mainCanvas = canvasObj.AddComponent<Canvas>();
             mainCanvas.renderMode = RenderMode.ScreenSpaceOverlay;
             mainCanvas.sortingOrder = 0;
 
-            CanvasScaler scaler = canvasGO.AddComponent<CanvasScaler>();
+            CanvasScaler scaler = canvasObj.AddComponent<CanvasScaler>();
             scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
             scaler.referenceResolution = new Vector2(1920, 1080);
             scaler.matchWidthOrHeight = 0.5f;
 
-            canvasGO.AddComponent<GraphicRaycaster>();
-            uiManager = canvasGO.AddComponent<UIManager>();
+            canvasObj.AddComponent<GraphicRaycaster>();
 
-            // Full screen background
-            GameObject bgGO = CreateUIElement("Background", canvasGO.transform);
-            SetFullStretch(bgGO.GetComponent<RectTransform>());
-            Image bgImg = bgGO.AddComponent<Image>();
-            bgImg.color = BgColor;
+            // Background
+            GameObject bgObj = new GameObject("Background");
+            bgObj.transform.SetParent(canvasObj.transform, false);
+            Image bgImage = bgObj.AddComponent<Image>();
+            bgImage.color = BgColor;
+            RectTransform bgRect = bgObj.GetComponent<RectTransform>();
+            bgRect.anchorMin = Vector2.zero;
+            bgRect.anchorMax = Vector2.one;
+            bgRect.offsetMin = Vector2.zero;
+            bgRect.offsetMax = Vector2.zero;
         }
 
         private void CreateGameManager()
         {
-            GameObject gmGO = new GameObject("GameManager");
-            gameManager = gmGO.AddComponent<GameManager>();
-            gameManager.turnManager = gmGO.AddComponent<TurnManager>();
-            gameManager.battleSystem = gmGO.AddComponent<BattleSystem>();
-            gameManager.deckManager = gmGO.AddComponent<DeckManager>();
-            playerController = gmGO.AddComponent<PlayerController>();
+            GameObject gmObj = new GameObject("GameManager");
+            gameManager = gmObj.AddComponent<GameManager>();
+            gameManager.turnManager = gmObj.AddComponent<TurnManager>();
+            gameManager.battleSystem = gmObj.AddComponent<BattleSystem>();
+            gameManager.deckManager = gmObj.AddComponent<DeckManager>();
+
+            GameObject uiObj = new GameObject("UIManager");
+            uiManager = uiObj.AddComponent<UIManager>();
+            gameManager.uiManager = uiManager;
+
+            GameObject pcObj = new GameObject("PlayerController");
+            playerController = pcObj.AddComponent<PlayerController>();
         }
 
         private GameObject CreateCardPrefab()
         {
-            GameObject card = CreateUIElement("CardPrefab", mainCanvas.transform);
-            RectTransform cardRT = card.GetComponent<RectTransform>();
-            cardRT.sizeDelta = new Vector2(120, 180);
+            GameObject card = new GameObject("CardPrefab");
+            card.SetActive(false);
+
+            RectTransform cardRect = card.AddComponent<RectTransform>();
+            cardRect.sizeDelta = new Vector2(120, 160);
 
             Image cardBg = card.AddComponent<Image>();
-            cardBg.color = new Color(0.2f, 0.4f, 0.8f, 1f);
+            cardBg.color = new Color(0.15f, 0.15f, 0.25f, 1f);
 
-            Button cardBtn = card.AddComponent<Button>();
-            cardBtn.targetGraphic = cardBg;
+            card.AddComponent<Button>();
 
             CardUI cardUI = card.AddComponent<CardUI>();
-            cardUI.background = cardBg;
 
-            // Card Name Text (top)
-            GameObject nameGO = CreateUIElement("NameText", card.transform);
-            RectTransform nameRT = nameGO.GetComponent<RectTransform>();
-            nameRT.anchorMin = new Vector2(0, 0.65f);
-            nameRT.anchorMax = new Vector2(1, 1f);
-            nameRT.offsetMin = new Vector2(4, 0);
-            nameRT.offsetMax = new Vector2(-4, -4);
-            TextMeshProUGUI nameText = nameGO.AddComponent<TextMeshProUGUI>();
-            nameText.text = "Card Name";
-            nameText.fontSize = 14;
-            nameText.alignment = TextAlignmentOptions.Top;
+            // Card name text
+            GameObject nameObj = new GameObject("NameText");
+            nameObj.transform.SetParent(card.transform, false);
+            Text nameText = nameObj.AddComponent<Text>();
+            nameText.font = GetFont();
+            nameText.fontSize = 12;
+            nameText.alignment = TextAnchor.UpperCenter;
             nameText.color = Color.white;
-            nameText.enableWordWrapping = true;
+            RectTransform nameRect = nameObj.GetComponent<RectTransform>();
+            nameRect.anchorMin = new Vector2(0, 0.6f);
+            nameRect.anchorMax = new Vector2(1, 1f);
+            nameRect.offsetMin = new Vector2(4, 0);
+            nameRect.offsetMax = new Vector2(-4, -4);
             cardUI.nameText = nameText;
 
-            // ATK Text (bottom left)
-            GameObject atkGO = CreateUIElement("ATKText", card.transform);
-            RectTransform atkRT = atkGO.GetComponent<RectTransform>();
-            atkRT.anchorMin = new Vector2(0, 0);
-            atkRT.anchorMax = new Vector2(0.5f, 0.25f);
-            atkRT.offsetMin = new Vector2(4, 4);
-            atkRT.offsetMax = new Vector2(0, 0);
-            TextMeshProUGUI atkText = atkGO.AddComponent<TextMeshProUGUI>();
-            atkText.text = "ATK: 0";
-            atkText.fontSize = 12;
-            atkText.alignment = TextAlignmentOptions.BottomLeft;
+            // ATK text
+            GameObject atkObj = new GameObject("ATKText");
+            atkObj.transform.SetParent(card.transform, false);
+            Text atkText = atkObj.AddComponent<Text>();
+            atkText.font = GetFont();
+            atkText.fontSize = 11;
+            atkText.alignment = TextAnchor.LowerLeft;
             atkText.color = Color.white;
+            RectTransform atkRect = atkObj.GetComponent<RectTransform>();
+            atkRect.anchorMin = new Vector2(0, 0);
+            atkRect.anchorMax = new Vector2(0.5f, 0.4f);
+            atkRect.offsetMin = new Vector2(4, 4);
+            atkRect.offsetMax = new Vector2(0, 0);
             cardUI.atkText = atkText;
 
-            // DEF Text (bottom right)
-            GameObject defGO = CreateUIElement("DEFText", card.transform);
-            RectTransform defRT = defGO.GetComponent<RectTransform>();
-            defRT.anchorMin = new Vector2(0.5f, 0);
-            defRT.anchorMax = new Vector2(1, 0.25f);
-            defRT.offsetMin = new Vector2(0, 4);
-            defRT.offsetMax = new Vector2(-4, 0);
-            TextMeshProUGUI defText = defGO.AddComponent<TextMeshProUGUI>();
-            defText.text = "DEF: 0";
-            defText.fontSize = 12;
-            defText.alignment = TextAlignmentOptions.BottomRight;
+            // DEF text
+            GameObject defObj = new GameObject("DEFText");
+            defObj.transform.SetParent(card.transform, false);
+            Text defText = defObj.AddComponent<Text>();
+            defText.font = GetFont();
+            defText.fontSize = 11;
+            defText.alignment = TextAnchor.LowerRight;
             defText.color = Color.white;
+            RectTransform defRect = defObj.GetComponent<RectTransform>();
+            defRect.anchorMin = new Vector2(0.5f, 0);
+            defRect.anchorMax = new Vector2(1, 0.4f);
+            defRect.offsetMin = new Vector2(0, 4);
+            defRect.offsetMax = new Vector2(-4, 0);
             cardUI.defText = defText;
 
-            // Disable and use as template
-            card.SetActive(false);
+            cardUI.background = cardBg;
+
             return card;
         }
 
         private GameObject CreateFactionSelectPanel()
         {
-            GameObject panel = CreateUIElement("FactionSelectPanel", mainCanvas.transform);
-            SetFullStretch(panel.GetComponent<RectTransform>());
+            GameObject panel = new GameObject("FactionSelectPanel");
+            panel.transform.SetParent(mainCanvas.transform, false);
             Image panelImg = panel.AddComponent<Image>();
-            panelImg.color = new Color(0.05f, 0.05f, 0.12f, 0.98f);
+            panelImg.color = PanelColor;
+            RectTransform panelRect = panel.GetComponent<RectTransform>();
+            panelRect.anchorMin = Vector2.zero;
+            panelRect.anchorMax = Vector2.one;
+            panelRect.offsetMin = Vector2.zero;
+            panelRect.offsetMax = Vector2.zero;
 
-            FactionSelectUI fsUI = panel.AddComponent<FactionSelectUI>();
+            FactionSelectUI factionUI = panel.AddComponent<FactionSelectUI>();
 
             // Title
-            GameObject titleGO = CreateUIElement("Title", panel.transform);
-            RectTransform titleRT = titleGO.GetComponent<RectTransform>();
-            titleRT.anchorMin = new Vector2(0.2f, 0.8f);
-            titleRT.anchorMax = new Vector2(0.8f, 0.95f);
-            titleRT.offsetMin = Vector2.zero;
-            titleRT.offsetMax = Vector2.zero;
-            TextMeshProUGUI titleText = titleGO.AddComponent<TextMeshProUGUI>();
-            titleText.text = "SCP: Breach - Card Game";
-            titleText.fontSize = 48;
-            titleText.alignment = TextAlignmentOptions.Center;
-            titleText.color = AccentColor;
+            GameObject titleObj = CreateTextObject(panel.transform, "Title", "SCP: BREACH - CARD GAME", 32, TextAnchor.UpperCenter);
+            RectTransform titleRect = titleObj.GetComponent<RectTransform>();
+            titleRect.anchorMin = new Vector2(0.1f, 0.85f);
+            titleRect.anchorMax = new Vector2(0.9f, 0.95f);
+            titleRect.offsetMin = Vector2.zero;
+            titleRect.offsetMax = Vector2.zero;
 
             // Player 1 Section
-            GameObject p1Label = CreateUIElement("P1Label", panel.transform);
-            RectTransform p1LabelRT = p1Label.GetComponent<RectTransform>();
-            p1LabelRT.anchorMin = new Vector2(0.1f, 0.6f);
-            p1LabelRT.anchorMax = new Vector2(0.9f, 0.7f);
-            p1LabelRT.offsetMin = Vector2.zero;
-            p1LabelRT.offsetMax = Vector2.zero;
-            TextMeshProUGUI p1LabelText = p1Label.AddComponent<TextMeshProUGUI>();
-            p1LabelText.text = "Player 1 - Choose Faction:";
-            p1LabelText.fontSize = 24;
-            p1LabelText.alignment = TextAlignmentOptions.Center;
-            p1LabelText.color = Color.white;
+            GameObject p1Label = CreateTextObject(panel.transform, "P1Label", "PLAYER 1 - Select Faction", 20, TextAnchor.MiddleCenter);
+            SetRect(p1Label, 0.05f, 0.7f, 0.45f, 0.82f);
 
-            // Player 1 buttons
-            Button p1MOG = CreateFactionButton("P1_MOG", panel.transform, "MOG", new Vector2(0.25f, 0.5f), new Color(0.13f, 0.59f, 0.95f, 1f));
-            Button p1Chaos = CreateFactionButton("P1_Chaos", panel.transform, "Chaos", new Vector2(0.5f, 0.5f), new Color(0.96f, 0.26f, 0.21f, 1f));
-            Button p1GOC = CreateFactionButton("P1_GOC", panel.transform, "GOC", new Vector2(0.75f, 0.5f), new Color(0.3f, 0.69f, 0.31f, 1f));
+            GameObject p1MOG = CreateButton(panel.transform, "P1_MOG", "MOG", new Color(0.2f, 0.4f, 0.8f, 1f));
+            SetRect(p1MOG, 0.08f, 0.55f, 0.2f, 0.68f);
+            factionUI.p1MOGButton = p1MOG.GetComponent<Button>();
 
-            // P1 selection text
-            GameObject p1SelGO = CreateUIElement("P1Selection", panel.transform);
-            RectTransform p1SelRT = p1SelGO.GetComponent<RectTransform>();
-            p1SelRT.anchorMin = new Vector2(0.1f, 0.42f);
-            p1SelRT.anchorMax = new Vector2(0.9f, 0.48f);
-            p1SelRT.offsetMin = Vector2.zero;
-            p1SelRT.offsetMax = Vector2.zero;
-            TextMeshProUGUI p1SelText = p1SelGO.AddComponent<TextMeshProUGUI>();
-            p1SelText.text = "";
-            p1SelText.fontSize = 20;
-            p1SelText.alignment = TextAlignmentOptions.Center;
-            p1SelText.color = Color.yellow;
+            GameObject p1Chaos = CreateButton(panel.transform, "P1_Chaos", "CHAOS", new Color(0.8f, 0.2f, 0.2f, 1f));
+            SetRect(p1Chaos, 0.22f, 0.55f, 0.34f, 0.68f);
+            factionUI.p1ChaosButton = p1Chaos.GetComponent<Button>();
+
+            GameObject p1GOC = CreateButton(panel.transform, "P1_GOC", "GOC", new Color(0.2f, 0.7f, 0.3f, 1f));
+            SetRect(p1GOC, 0.36f, 0.55f, 0.48f, 0.68f);
+            factionUI.p1GOCButton = p1GOC.GetComponent<Button>();
+
+            GameObject p1Selection = CreateTextObject(panel.transform, "P1Selection", "P1: Not Selected", 16, TextAnchor.MiddleCenter);
+            SetRect(p1Selection, 0.05f, 0.45f, 0.45f, 0.53f);
+            factionUI.p1SelectionText = p1Selection.GetComponent<Text>();
 
             // Player 2 Section
-            GameObject p2Label = CreateUIElement("P2Label", panel.transform);
-            RectTransform p2LabelRT = p2Label.GetComponent<RectTransform>();
-            p2LabelRT.anchorMin = new Vector2(0.1f, 0.32f);
-            p2LabelRT.anchorMax = new Vector2(0.9f, 0.42f);
-            p2LabelRT.offsetMin = Vector2.zero;
-            p2LabelRT.offsetMax = Vector2.zero;
-            TextMeshProUGUI p2LabelText = p2Label.AddComponent<TextMeshProUGUI>();
-            p2LabelText.text = "Player 2 - Choose Faction:";
-            p2LabelText.fontSize = 24;
-            p2LabelText.alignment = TextAlignmentOptions.Center;
-            p2LabelText.color = Color.white;
+            GameObject p2Label = CreateTextObject(panel.transform, "P2Label", "PLAYER 2 - Select Faction", 20, TextAnchor.MiddleCenter);
+            SetRect(p2Label, 0.55f, 0.7f, 0.95f, 0.82f);
 
-            // Player 2 buttons
-            Button p2MOG = CreateFactionButton("P2_MOG", panel.transform, "MOG", new Vector2(0.25f, 0.22f), new Color(0.13f, 0.59f, 0.95f, 1f));
-            Button p2Chaos = CreateFactionButton("P2_Chaos", panel.transform, "Chaos", new Vector2(0.5f, 0.22f), new Color(0.96f, 0.26f, 0.21f, 1f));
-            Button p2GOC = CreateFactionButton("P2_GOC", panel.transform, "GOC", new Vector2(0.75f, 0.22f), new Color(0.3f, 0.69f, 0.31f, 1f));
+            GameObject p2MOG = CreateButton(panel.transform, "P2_MOG", "MOG", new Color(0.2f, 0.4f, 0.8f, 1f));
+            SetRect(p2MOG, 0.58f, 0.55f, 0.7f, 0.68f);
+            factionUI.p2MOGButton = p2MOG.GetComponent<Button>();
 
-            // P2 selection text
-            GameObject p2SelGO = CreateUIElement("P2Selection", panel.transform);
-            RectTransform p2SelRT = p2SelGO.GetComponent<RectTransform>();
-            p2SelRT.anchorMin = new Vector2(0.1f, 0.14f);
-            p2SelRT.anchorMax = new Vector2(0.9f, 0.2f);
-            p2SelRT.offsetMin = Vector2.zero;
-            p2SelRT.offsetMax = Vector2.zero;
-            TextMeshProUGUI p2SelText = p2SelGO.AddComponent<TextMeshProUGUI>();
-            p2SelText.text = "";
-            p2SelText.fontSize = 20;
-            p2SelText.alignment = TextAlignmentOptions.Center;
-            p2SelText.color = Color.yellow;
+            GameObject p2Chaos = CreateButton(panel.transform, "P2_Chaos", "CHAOS", new Color(0.8f, 0.2f, 0.2f, 1f));
+            SetRect(p2Chaos, 0.72f, 0.55f, 0.84f, 0.68f);
+            factionUI.p2ChaosButton = p2Chaos.GetComponent<Button>();
 
-            // Start button
-            Button startBtn = CreateStyledButton("StartButton", panel.transform, "START GAME",
-                new Vector2(0.35f, 0.04f), new Vector2(0.65f, 0.12f), new Color(0.1f, 0.6f, 0.1f, 1f));
-            startBtn.interactable = false;
+            GameObject p2GOC = CreateButton(panel.transform, "P2_GOC", "GOC", new Color(0.2f, 0.7f, 0.3f, 1f));
+            SetRect(p2GOC, 0.86f, 0.55f, 0.98f, 0.68f);
+            factionUI.p2GOCButton = p2GOC.GetComponent<Button>();
 
-            // Wire FactionSelectUI
-            fsUI.p1MOGButton = p1MOG;
-            fsUI.p1ChaosButton = p1Chaos;
-            fsUI.p1GOCButton = p1GOC;
-            fsUI.p2MOGButton = p2MOG;
-            fsUI.p2ChaosButton = p2Chaos;
-            fsUI.p2GOCButton = p2GOC;
-            fsUI.startGameButton = startBtn;
-            fsUI.p1SelectionText = p1SelText;
-            fsUI.p2SelectionText = p2SelText;
+            GameObject p2Selection = CreateTextObject(panel.transform, "P2Selection", "P2: Not Selected", 16, TextAnchor.MiddleCenter);
+            SetRect(p2Selection, 0.55f, 0.45f, 0.95f, 0.53f);
+            factionUI.p2SelectionText = p2Selection.GetComponent<Text>();
+
+            // Start Game button
+            GameObject startBtn = CreateButton(panel.transform, "StartButton", "START GAME", AccentColor);
+            SetRect(startBtn, 0.35f, 0.2f, 0.65f, 0.35f);
+            factionUI.startGameButton = startBtn.GetComponent<Button>();
 
             return panel;
         }
 
         private GameObject CreateGameBoardPanel()
         {
-            GameObject panel = CreateUIElement("GameBoardPanel", mainCanvas.transform);
-            SetFullStretch(panel.GetComponent<RectTransform>());
-            Image panelImg = panel.AddComponent<Image>();
-            panelImg.color = new Color(0, 0, 0, 0); // transparent, bg already covers
+            GameObject panel = new GameObject("GameBoardPanel");
+            panel.transform.SetParent(mainCanvas.transform, false);
+            RectTransform panelRect = panel.AddComponent<RectTransform>();
+            panelRect.anchorMin = Vector2.zero;
+            panelRect.anchorMax = Vector2.one;
+            panelRect.offsetMin = Vector2.zero;
+            panelRect.offsetMax = Vector2.zero;
             panel.SetActive(false);
 
-            // === TOP AREA: Player 2 Info ===
-            GameObject p2Area = CreateUIElement("P2Area", panel.transform);
-            RectTransform p2AreaRT = p2Area.GetComponent<RectTransform>();
-            p2AreaRT.anchorMin = new Vector2(0, 0.75f);
-            p2AreaRT.anchorMax = new Vector2(0.82f, 1f);
-            p2AreaRT.offsetMin = new Vector2(10, 0);
-            p2AreaRT.offsetMax = new Vector2(0, -10);
+            // Top Info Bar
+            GameObject topBar = new GameObject("TopBar");
+            topBar.transform.SetParent(panel.transform, false);
+            Image topBarImg = topBar.AddComponent<Image>();
+            topBarImg.color = PanelColor;
+            SetRect(topBar, 0f, 0.92f, 1f, 1f);
 
-            // P2 HP Text
-            GameObject p2HPTextGO = CreateUIElement("P2HPText", p2Area.transform);
-            RectTransform p2HPRT = p2HPTextGO.GetComponent<RectTransform>();
-            p2HPRT.anchorMin = new Vector2(0, 0.7f);
-            p2HPRT.anchorMax = new Vector2(0.3f, 1f);
-            p2HPRT.offsetMin = Vector2.zero;
-            p2HPRT.offsetMax = Vector2.zero;
-            TextMeshProUGUI p2HPText = p2HPTextGO.AddComponent<TextMeshProUGUI>();
-            p2HPText.text = "Player 2 HP: 30/30";
-            p2HPText.fontSize = 20;
-            p2HPText.color = Color.white;
+            // P1 HP
+            GameObject p1HPObj = CreateTextObject(topBar.transform, "P1HP", "P1 HP: 30/30", 18, TextAnchor.MiddleCenter);
+            SetRect(p1HPObj, 0.02f, 0.1f, 0.2f, 0.9f);
 
-            // P2 HP Bar
-            Slider p2HPBar = CreateHPBar("P2HPBar", p2Area.transform,
-                new Vector2(0.3f, 0.75f), new Vector2(0.7f, 0.95f));
-
-            // P2 Hand Panel
-            GameObject p2Hand = CreateUIElement("P2HandPanel", p2Area.transform);
-            RectTransform p2HandRT = p2Hand.GetComponent<RectTransform>();
-            p2HandRT.anchorMin = new Vector2(0, 0);
-            p2HandRT.anchorMax = new Vector2(1, 0.7f);
-            p2HandRT.offsetMin = Vector2.zero;
-            p2HandRT.offsetMax = Vector2.zero;
-            HorizontalLayoutGroup p2HLG = p2Hand.AddComponent<HorizontalLayoutGroup>();
-            p2HLG.spacing = 10;
-            p2HLG.childAlignment = TextAnchor.MiddleCenter;
-            p2HLG.childForceExpandWidth = false;
-            p2HLG.childForceExpandHeight = false;
-
-            // === MIDDLE AREA: Battlefield ===
-            GameObject midArea = CreateUIElement("BattleField", panel.transform);
-            RectTransform midAreaRT = midArea.GetComponent<RectTransform>();
-            midAreaRT.anchorMin = new Vector2(0, 0.3f);
-            midAreaRT.anchorMax = new Vector2(0.82f, 0.75f);
-            midAreaRT.offsetMin = new Vector2(10, 0);
-            midAreaRT.offsetMax = new Vector2(0, 0);
-
-            // P2 Field slots (top half of middle)
-            Transform[] p2FieldSlots = CreateFieldSlots("P2Field", midArea.transform,
-                new Vector2(0, 0.55f), new Vector2(1, 1f), false);
-
-            // Divider
-            GameObject divider = CreateUIElement("Divider", midArea.transform);
-            RectTransform divRT = divider.GetComponent<RectTransform>();
-            divRT.anchorMin = new Vector2(0.05f, 0.48f);
-            divRT.anchorMax = new Vector2(0.95f, 0.52f);
-            divRT.offsetMin = Vector2.zero;
-            divRT.offsetMax = Vector2.zero;
-            Image divImg = divider.AddComponent<Image>();
-            divImg.color = new Color(0.4f, 0.4f, 0.6f, 0.5f);
-
-            // P1 Field slots (bottom half of middle)
-            Transform[] p1FieldSlots = CreateFieldSlots("P1Field", midArea.transform,
-                new Vector2(0, 0), new Vector2(1, 0.45f), true);
-
-            // === BOTTOM AREA: Player 1 Info ===
-            GameObject p1Area = CreateUIElement("P1Area", panel.transform);
-            RectTransform p1AreaRT = p1Area.GetComponent<RectTransform>();
-            p1AreaRT.anchorMin = new Vector2(0, 0);
-            p1AreaRT.anchorMax = new Vector2(0.82f, 0.3f);
-            p1AreaRT.offsetMin = new Vector2(10, 10);
-            p1AreaRT.offsetMax = Vector2.zero;
-
-            // P1 Hand Panel
-            GameObject p1Hand = CreateUIElement("P1HandPanel", p1Area.transform);
-            RectTransform p1HandRT = p1Hand.GetComponent<RectTransform>();
-            p1HandRT.anchorMin = new Vector2(0, 0.3f);
-            p1HandRT.anchorMax = new Vector2(1, 1f);
-            p1HandRT.offsetMin = Vector2.zero;
-            p1HandRT.offsetMax = Vector2.zero;
-            HorizontalLayoutGroup p1HLG = p1Hand.AddComponent<HorizontalLayoutGroup>();
-            p1HLG.spacing = 10;
-            p1HLG.childAlignment = TextAnchor.MiddleCenter;
-            p1HLG.childForceExpandWidth = false;
-            p1HLG.childForceExpandHeight = false;
-
-            // P1 HP Text
-            GameObject p1HPTextGO = CreateUIElement("P1HPText", p1Area.transform);
-            RectTransform p1HPRT = p1HPTextGO.GetComponent<RectTransform>();
-            p1HPRT.anchorMin = new Vector2(0, 0);
-            p1HPRT.anchorMax = new Vector2(0.3f, 0.3f);
-            p1HPRT.offsetMin = Vector2.zero;
-            p1HPRT.offsetMax = Vector2.zero;
-            TextMeshProUGUI p1HPText = p1HPTextGO.AddComponent<TextMeshProUGUI>();
-            p1HPText.text = "Player 1 HP: 30/30";
-            p1HPText.fontSize = 20;
-            p1HPText.color = Color.white;
-
-            // P1 HP Bar
-            Slider p1HPBar = CreateHPBar("P1HPBar", p1Area.transform,
-                new Vector2(0.3f, 0.05f), new Vector2(0.7f, 0.25f));
-
-            // === RIGHT SIDEBAR ===
-            GameObject sidebar = CreateUIElement("Sidebar", panel.transform);
-            RectTransform sidebarRT = sidebar.GetComponent<RectTransform>();
-            sidebarRT.anchorMin = new Vector2(0.82f, 0);
-            sidebarRT.anchorMax = new Vector2(1, 1);
-            sidebarRT.offsetMin = new Vector2(5, 10);
-            sidebarRT.offsetMax = new Vector2(-10, -10);
-            Image sidebarBg = sidebar.AddComponent<Image>();
-            sidebarBg.color = PanelColor;
+            // P2 HP
+            GameObject p2HPObj = CreateTextObject(topBar.transform, "P2HP", "P2 HP: 30/30", 18, TextAnchor.MiddleCenter);
+            SetRect(p2HPObj, 0.8f, 0.1f, 0.98f, 0.9f);
 
             // Phase indicator
-            GameObject phaseGO = CreateUIElement("PhaseText", sidebar.transform);
-            RectTransform phaseRT = phaseGO.GetComponent<RectTransform>();
-            phaseRT.anchorMin = new Vector2(0, 0.85f);
-            phaseRT.anchorMax = new Vector2(1, 0.95f);
-            phaseRT.offsetMin = new Vector2(5, 0);
-            phaseRT.offsetMax = new Vector2(-5, 0);
-            TextMeshProUGUI phaseText = phaseGO.AddComponent<TextMeshProUGUI>();
-            phaseText.text = "Phase: Play";
-            phaseText.fontSize = 18;
-            phaseText.alignment = TextAlignmentOptions.Center;
-            phaseText.color = AccentColor;
+            GameObject phaseObj = CreateTextObject(topBar.transform, "Phase", "Phase: FactionSelect", 16, TextAnchor.MiddleCenter);
+            SetRect(phaseObj, 0.3f, 0.1f, 0.5f, 0.9f);
 
             // Turn indicator
-            GameObject turnGO = CreateUIElement("TurnText", sidebar.transform);
-            RectTransform turnRT = turnGO.GetComponent<RectTransform>();
-            turnRT.anchorMin = new Vector2(0, 0.75f);
-            turnRT.anchorMax = new Vector2(1, 0.85f);
-            turnRT.offsetMin = new Vector2(5, 0);
-            turnRT.offsetMax = new Vector2(-5, 0);
-            TextMeshProUGUI turnText = turnGO.AddComponent<TextMeshProUGUI>();
-            turnText.text = "Player 1's Turn";
-            turnText.fontSize = 16;
-            turnText.alignment = TextAlignmentOptions.Center;
-            turnText.color = Color.white;
+            GameObject turnObj = CreateTextObject(topBar.transform, "Turn", "Player 1's Turn", 16, TextAnchor.MiddleCenter);
+            SetRect(turnObj, 0.5f, 0.1f, 0.7f, 0.9f);
 
             // Deck count
-            GameObject deckGO = CreateUIElement("DeckText", sidebar.transform);
-            RectTransform deckRT = deckGO.GetComponent<RectTransform>();
-            deckRT.anchorMin = new Vector2(0, 0.65f);
-            deckRT.anchorMax = new Vector2(1, 0.75f);
-            deckRT.offsetMin = new Vector2(5, 0);
-            deckRT.offsetMax = new Vector2(-5, 0);
-            TextMeshProUGUI deckText = deckGO.AddComponent<TextMeshProUGUI>();
-            deckText.text = "Deck: 30";
-            deckText.fontSize = 16;
-            deckText.alignment = TextAlignmentOptions.Center;
-            deckText.color = Color.white;
+            GameObject deckObj = CreateTextObject(topBar.transform, "Deck", "", 14, TextAnchor.MiddleCenter);
+            SetRect(deckObj, 0.22f, 0.1f, 0.3f, 0.9f);
+
+            // Player 2 Field (top area)
+            Transform[] p2Slots = CreateFieldSlots(panel.transform, "P2Field", 0.3f, 0.62f, 0.7f, 0.88f);
+
+            // Player 1 Field (bottom area)
+            Transform[] p1Slots = CreateFieldSlots(panel.transform, "P1Field", 0.3f, 0.32f, 0.7f, 0.58f);
+
+            // Player 1 Hand (bottom)
+            GameObject p1Hand = new GameObject("P1Hand");
+            p1Hand.transform.SetParent(panel.transform, false);
+            RectTransform p1HandRect = p1Hand.AddComponent<RectTransform>();
+            SetRect(p1Hand, 0.1f, 0.02f, 0.75f, 0.28f);
+            HorizontalLayoutGroup p1Layout = p1Hand.AddComponent<HorizontalLayoutGroup>();
+            p1Layout.spacing = 8;
+            p1Layout.childAlignment = TextAnchor.MiddleCenter;
+            p1Layout.childForceExpandWidth = false;
+            p1Layout.childForceExpandHeight = false;
+
+            // Player 2 Hand (hidden by default, shown on their turn)
+            GameObject p2Hand = new GameObject("P2Hand");
+            p2Hand.transform.SetParent(panel.transform, false);
+            RectTransform p2HandRect = p2Hand.AddComponent<RectTransform>();
+            SetRect(p2Hand, 0.1f, 0.02f, 0.75f, 0.28f);
+            HorizontalLayoutGroup p2Layout = p2Hand.AddComponent<HorizontalLayoutGroup>();
+            p2Layout.spacing = 8;
+            p2Layout.childAlignment = TextAnchor.MiddleCenter;
+            p2Layout.childForceExpandWidth = false;
+            p2Layout.childForceExpandHeight = false;
 
             // End Turn button
-            Button endTurnBtn = CreateStyledButton("EndTurnButton", sidebar.transform, "END TURN",
-                new Vector2(0.1f, 0.05f), new Vector2(0.9f, 0.15f), new Color(0.7f, 0.2f, 0.2f, 1f));
+            GameObject endTurnBtn = CreateButton(panel.transform, "EndTurnButton", "END TURN", ButtonColor);
+            SetRect(endTurnBtn, 0.8f, 0.05f, 0.95f, 0.15f);
 
-            // Store references for wiring
-            panel.AddComponent<GameBoardRefs>();
-            GameBoardRefs refs = panel.GetComponent<GameBoardRefs>();
-            refs.p1HPText = p1HPText;
-            refs.p2HPText = p2HPText;
-            refs.p1HPBar = p1HPBar;
-            refs.p2HPBar = p2HPBar;
-            refs.p1HandPanel = p1Hand.transform;
-            refs.p2HandPanel = p2Hand.transform;
-            refs.p1FieldSlots = p1FieldSlots;
-            refs.p2FieldSlots = p2FieldSlots;
-            refs.phaseText = phaseText;
-            refs.turnText = turnText;
-            refs.deckText = deckText;
-            refs.endTurnBtn = endTurnBtn;
+            // Store references in a helper component
+            GameBoardRefs refs = panel.AddComponent<GameBoardRefs>();
+            refs.player1HPText = p1HPObj.GetComponent<Text>();
+            refs.player2HPText = p2HPObj.GetComponent<Text>();
+            refs.phaseText = phaseObj.GetComponent<Text>();
+            refs.turnText = turnObj.GetComponent<Text>();
+            refs.deckCountText = deckObj.GetComponent<Text>();
+            refs.player1FieldSlots = p1Slots;
+            refs.player2FieldSlots = p2Slots;
+            refs.player1HandPanel = p1Hand.transform;
+            refs.player2HandPanel = p2Hand.transform;
+            refs.endTurnButton = endTurnBtn.GetComponent<Button>();
 
             return panel;
         }
 
         private GameObject CreateWinScreenPanel()
         {
-            GameObject panel = CreateUIElement("WinScreenPanel", mainCanvas.transform);
-            SetFullStretch(panel.GetComponent<RectTransform>());
+            GameObject panel = new GameObject("WinScreenPanel");
+            panel.transform.SetParent(mainCanvas.transform, false);
             Image panelImg = panel.AddComponent<Image>();
             panelImg.color = new Color(0, 0, 0, 0.85f);
+            RectTransform panelRect = panel.GetComponent<RectTransform>();
+            panelRect.anchorMin = Vector2.zero;
+            panelRect.anchorMax = Vector2.one;
+            panelRect.offsetMin = Vector2.zero;
+            panelRect.offsetMax = Vector2.zero;
             panel.SetActive(false);
 
             // Winner text
-            GameObject winTextGO = CreateUIElement("WinnerText", panel.transform);
-            RectTransform winRT = winTextGO.GetComponent<RectTransform>();
-            winRT.anchorMin = new Vector2(0.2f, 0.4f);
-            winRT.anchorMax = new Vector2(0.8f, 0.7f);
-            winRT.offsetMin = Vector2.zero;
-            winRT.offsetMax = Vector2.zero;
-            TextMeshProUGUI winText = winTextGO.AddComponent<TextMeshProUGUI>();
-            winText.text = "PLAYER X WINS!";
-            winText.fontSize = 64;
-            winText.alignment = TextAlignmentOptions.Center;
-            winText.color = Color.yellow;
+            GameObject winText = CreateTextObject(panel.transform, "WinnerText", "Player X Wins!", 48, TextAnchor.MiddleCenter);
+            SetRect(winText, 0.2f, 0.4f, 0.8f, 0.65f);
 
-            // Play Again button
-            Button playAgainBtn = CreateStyledButton("PlayAgainButton", panel.transform, "Play Again",
-                new Vector2(0.35f, 0.2f), new Vector2(0.65f, 0.32f), new Color(0.2f, 0.5f, 0.2f, 1f));
-            playAgainBtn.onClick.AddListener(() =>
-            {
-                SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
-            });
-
-            // Store winner text ref on panel for retrieval
-            panel.AddComponent<WinPanelRef>();
-            panel.GetComponent<WinPanelRef>().winnerText = winText;
+            WinPanelRef winRef = panel.AddComponent<WinPanelRef>();
+            winRef.winnerText = winText.GetComponent<Text>();
 
             return panel;
         }
 
         private void WireEverything(GameObject cardPrefab, GameObject factionPanel, GameObject gamePanel, GameObject winPanel)
         {
-            GameBoardRefs refs = gamePanel.GetComponent<GameBoardRefs>();
+            GameBoardRefs boardRefs = gamePanel.GetComponent<GameBoardRefs>();
             WinPanelRef winRef = winPanel.GetComponent<WinPanelRef>();
 
             // Wire UIManager
-            uiManager.player1HPText = refs.p1HPText;
-            uiManager.player2HPText = refs.p2HPText;
-            uiManager.player1HPBar = refs.p1HPBar;
-            uiManager.player2HPBar = refs.p2HPBar;
-            uiManager.player1HandPanel = refs.p1HandPanel;
-            uiManager.player2HandPanel = refs.p2HandPanel;
-            uiManager.player1FieldSlots = refs.p1FieldSlots;
-            uiManager.player2FieldSlots = refs.p2FieldSlots;
-            uiManager.phaseIndicatorText = refs.phaseText;
-            uiManager.turnIndicatorText = refs.turnText;
-            uiManager.deckCountText = refs.deckText;
-            uiManager.endTurnButton = refs.endTurnBtn;
+            uiManager.player1HPText = boardRefs.player1HPText;
+            uiManager.player2HPText = boardRefs.player2HPText;
+            uiManager.phaseIndicatorText = boardRefs.phaseText;
+            uiManager.turnIndicatorText = boardRefs.turnText;
+            uiManager.deckCountText = boardRefs.deckCountText;
+            uiManager.player1FieldSlots = boardRefs.player1FieldSlots;
+            uiManager.player2FieldSlots = boardRefs.player2FieldSlots;
+            uiManager.player1HandPanel = boardRefs.player1HandPanel;
+            uiManager.player2HandPanel = boardRefs.player2HandPanel;
+            uiManager.endTurnButton = boardRefs.endTurnButton;
             uiManager.factionSelectPanel = factionPanel;
             uiManager.winScreenPanel = winPanel;
             uiManager.winnerText = winRef.winnerText;
             uiManager.cardPrefab = cardPrefab;
 
-            // Wire GameManager
-            gameManager.uiManager = uiManager;
-
             // Wire End Turn button
-            refs.endTurnBtn.onClick.AddListener(() =>
+            if (boardRefs.endTurnButton != null)
             {
-                playerController.OnEndTurnClicked();
-            });
+                boardRefs.endTurnButton.onClick.AddListener(() =>
+                {
+                    playerController.OnEndTurnClicked();
+                });
+            }
 
-            // Show faction select, hide game panel
+            // Wire field slot clicks
+            for (int i = 0; i < 3; i++)
+            {
+                int slotIndex = i;
+                if (boardRefs.player1FieldSlots[i] != null)
+                {
+                    Button slotBtn = boardRefs.player1FieldSlots[i].GetComponent<Button>();
+                    if (slotBtn == null)
+                        slotBtn = boardRefs.player1FieldSlots[i].gameObject.AddComponent<Button>();
+                    slotBtn.onClick.AddListener(() =>
+                    {
+                        playerController.OnFieldSlotClicked(slotIndex);
+                    });
+                }
+                if (boardRefs.player2FieldSlots[i] != null)
+                {
+                    Button slotBtn = boardRefs.player2FieldSlots[i].GetComponent<Button>();
+                    if (slotBtn == null)
+                        slotBtn = boardRefs.player2FieldSlots[i].gameObject.AddComponent<Button>();
+                    slotBtn.onClick.AddListener(() =>
+                    {
+                        playerController.OnFieldSlotClicked(slotIndex);
+                    });
+                }
+            }
+
+            // Show faction select at start
             factionPanel.SetActive(true);
-            gamePanel.SetActive(true); // game board is visible behind faction select
+            gamePanel.SetActive(true);
         }
 
-        // === HELPER METHODS ===
+        // --- Helper methods ---
 
-        private GameObject CreateUIElement(string name, Transform parent)
+        private GameObject CreateTextObject(Transform parent, string name, string content, int fontSize, TextAnchor alignment)
         {
-            GameObject go = new GameObject(name, typeof(RectTransform));
-            go.transform.SetParent(parent, false);
-            return go;
-        }
-
-        private void SetFullStretch(RectTransform rt)
-        {
-            rt.anchorMin = Vector2.zero;
-            rt.anchorMax = Vector2.one;
-            rt.offsetMin = Vector2.zero;
-            rt.offsetMax = Vector2.zero;
-        }
-
-        private Button CreateFactionButton(string name, Transform parent, string label, Vector2 center, Color color)
-        {
-            GameObject btnGO = CreateUIElement(name, parent);
-            RectTransform btnRT = btnGO.GetComponent<RectTransform>();
-            btnRT.anchorMin = new Vector2(center.x - 0.1f, center.y - 0.04f);
-            btnRT.anchorMax = new Vector2(center.x + 0.1f, center.y + 0.04f);
-            btnRT.offsetMin = Vector2.zero;
-            btnRT.offsetMax = Vector2.zero;
-
-            Image btnImg = btnGO.AddComponent<Image>();
-            btnImg.color = color;
-
-            Button btn = btnGO.AddComponent<Button>();
-            btn.targetGraphic = btnImg;
-
-            GameObject textGO = CreateUIElement("Text", btnGO.transform);
-            SetFullStretch(textGO.GetComponent<RectTransform>());
-            TextMeshProUGUI text = textGO.AddComponent<TextMeshProUGUI>();
-            text.text = label;
-            text.fontSize = 22;
-            text.alignment = TextAlignmentOptions.Center;
+            GameObject obj = new GameObject(name);
+            obj.transform.SetParent(parent, false);
+            obj.AddComponent<RectTransform>();
+            Text text = obj.AddComponent<Text>();
+            text.font = GetFont();
+            text.text = content;
+            text.fontSize = fontSize;
+            text.alignment = alignment;
             text.color = Color.white;
-
-            return btn;
+            return obj;
         }
 
-        private Button CreateStyledButton(string name, Transform parent, string label, Vector2 anchorMin, Vector2 anchorMax, Color color)
+        private GameObject CreateButton(Transform parent, string name, string label, Color color)
         {
-            GameObject btnGO = CreateUIElement(name, parent);
-            RectTransform btnRT = btnGO.GetComponent<RectTransform>();
-            btnRT.anchorMin = anchorMin;
-            btnRT.anchorMax = anchorMax;
-            btnRT.offsetMin = Vector2.zero;
-            btnRT.offsetMax = Vector2.zero;
-
-            Image btnImg = btnGO.AddComponent<Image>();
+            GameObject btnObj = new GameObject(name);
+            btnObj.transform.SetParent(parent, false);
+            btnObj.AddComponent<RectTransform>();
+            Image btnImg = btnObj.AddComponent<Image>();
             btnImg.color = color;
+            btnObj.AddComponent<Button>();
 
-            Button btn = btnGO.AddComponent<Button>();
-            btn.targetGraphic = btnImg;
+            GameObject labelObj = new GameObject("Label");
+            labelObj.transform.SetParent(btnObj.transform, false);
+            RectTransform labelRect = labelObj.AddComponent<RectTransform>();
+            labelRect.anchorMin = Vector2.zero;
+            labelRect.anchorMax = Vector2.one;
+            labelRect.offsetMin = Vector2.zero;
+            labelRect.offsetMax = Vector2.zero;
+            Text labelText = labelObj.AddComponent<Text>();
+            labelText.font = GetFont();
+            labelText.text = label;
+            labelText.fontSize = 16;
+            labelText.alignment = TextAnchor.MiddleCenter;
+            labelText.color = Color.white;
 
-            GameObject textGO = CreateUIElement("Text", btnGO.transform);
-            SetFullStretch(textGO.GetComponent<RectTransform>());
-            TextMeshProUGUI text = textGO.AddComponent<TextMeshProUGUI>();
-            text.text = label;
-            text.fontSize = 22;
-            text.alignment = TextAlignmentOptions.Center;
-            text.color = Color.white;
-
-            return btn;
+            return btnObj;
         }
 
-        private Slider CreateHPBar(string name, Transform parent, Vector2 anchorMin, Vector2 anchorMax)
+        private Transform[] CreateFieldSlots(Transform parent, string name, float xMin, float yMin, float xMax, float yMax)
         {
-            GameObject sliderGO = CreateUIElement(name, parent);
-            RectTransform sliderRT = sliderGO.GetComponent<RectTransform>();
-            sliderRT.anchorMin = anchorMin;
-            sliderRT.anchorMax = anchorMax;
-            sliderRT.offsetMin = Vector2.zero;
-            sliderRT.offsetMax = Vector2.zero;
-
-            Slider slider = sliderGO.AddComponent<Slider>();
-            slider.minValue = 0;
-            slider.maxValue = 1;
-            slider.value = 1;
-            slider.interactable = false;
-
-            // Background
-            GameObject bgGO = CreateUIElement("Background", sliderGO.transform);
-            SetFullStretch(bgGO.GetComponent<RectTransform>());
-            Image bgImg = bgGO.AddComponent<Image>();
-            bgImg.color = new Color(0.2f, 0.2f, 0.2f, 1f);
-
-            // Fill area
-            GameObject fillArea = CreateUIElement("FillArea", sliderGO.transform);
-            SetFullStretch(fillArea.GetComponent<RectTransform>());
-
-            GameObject fill = CreateUIElement("Fill", fillArea.transform);
-            SetFullStretch(fill.GetComponent<RectTransform>());
-            Image fillImg = fill.AddComponent<Image>();
-            fillImg.color = new Color(0.2f, 0.8f, 0.2f, 1f);
-
-            slider.fillRect = fill.GetComponent<RectTransform>();
-
-            return slider;
-        }
-
-        private Transform[] CreateFieldSlots(string name, Transform parent, Vector2 anchorMin, Vector2 anchorMax, bool isPlayer1)
-        {
-            GameObject container = CreateUIElement(name, parent);
-            RectTransform containerRT = container.GetComponent<RectTransform>();
-            containerRT.anchorMin = anchorMin;
-            containerRT.anchorMax = anchorMax;
-            containerRT.offsetMin = Vector2.zero;
-            containerRT.offsetMax = Vector2.zero;
-
-            HorizontalLayoutGroup hlg = container.AddComponent<HorizontalLayoutGroup>();
-            hlg.spacing = 20;
-            hlg.childAlignment = TextAnchor.MiddleCenter;
-            hlg.childForceExpandWidth = false;
-            hlg.childForceExpandHeight = false;
-            hlg.padding = new RectOffset(40, 40, 5, 5);
+            GameObject container = new GameObject(name);
+            container.transform.SetParent(parent, false);
+            container.AddComponent<RectTransform>();
+            SetRect(container, xMin, yMin, xMax, yMax);
 
             Transform[] slots = new Transform[3];
+            float slotWidth = 1f / 3f;
 
             for (int i = 0; i < 3; i++)
             {
-                GameObject slot = CreateUIElement("Slot_" + i, container.transform);
-                LayoutElement le = slot.AddComponent<LayoutElement>();
-                le.preferredWidth = 130;
-                le.preferredHeight = 190;
+                GameObject slot = new GameObject("Slot_" + i);
+                slot.transform.SetParent(container.transform, false);
+                RectTransform slotRect = slot.AddComponent<RectTransform>();
+                slotRect.anchorMin = new Vector2(slotWidth * i + 0.02f, 0.05f);
+                slotRect.anchorMax = new Vector2(slotWidth * (i + 1) - 0.02f, 0.95f);
+                slotRect.offsetMin = Vector2.zero;
+                slotRect.offsetMax = Vector2.zero;
 
                 Image slotImg = slot.AddComponent<Image>();
                 slotImg.color = SlotColor;
 
-                // Slot border effect via outline
+                // Border effect via outline
                 Outline outline = slot.AddComponent<Outline>();
                 outline.effectColor = SlotBorder;
                 outline.effectDistance = new Vector2(2, 2);
-
-                // Slot label
-                GameObject labelGO = CreateUIElement("Label", slot.transform);
-                SetFullStretch(labelGO.GetComponent<RectTransform>());
-                TextMeshProUGUI label = labelGO.AddComponent<TextMeshProUGUI>();
-                label.text = "Slot " + (i + 1);
-                label.fontSize = 14;
-                label.alignment = TextAlignmentOptions.Center;
-                label.color = new Color(1, 1, 1, 0.3f);
-
-                // Button for click interaction
-                Button slotBtn = slot.AddComponent<Button>();
-                slotBtn.targetGraphic = slotImg;
-                int slotIndex = i;
-                slotBtn.onClick.AddListener(() =>
-                {
-                    if (playerController != null)
-                        playerController.OnFieldSlotClicked(slotIndex);
-                });
 
                 slots[i] = slot.transform;
             }
 
             return slots;
         }
+
+        private void SetRect(GameObject obj, float xMin, float yMin, float xMax, float yMax)
+        {
+            RectTransform rect = obj.GetComponent<RectTransform>();
+            if (rect == null)
+                rect = obj.AddComponent<RectTransform>();
+            rect.anchorMin = new Vector2(xMin, yMin);
+            rect.anchorMax = new Vector2(xMax, yMax);
+            rect.offsetMin = Vector2.zero;
+            rect.offsetMax = Vector2.zero;
+        }
     }
 
-    // Helper component to temporarily store game board references during setup
+    // Helper component to store game board references during setup
     public class GameBoardRefs : MonoBehaviour
     {
-        public TextMeshProUGUI p1HPText;
-        public TextMeshProUGUI p2HPText;
-        public Slider p1HPBar;
-        public Slider p2HPBar;
-        public Transform p1HandPanel;
-        public Transform p2HandPanel;
-        public Transform[] p1FieldSlots;
-        public Transform[] p2FieldSlots;
-        public TextMeshProUGUI phaseText;
-        public TextMeshProUGUI turnText;
-        public TextMeshProUGUI deckText;
-        public Button endTurnBtn;
+        public Text player1HPText;
+        public Text player2HPText;
+        public Text phaseText;
+        public Text turnText;
+        public Text deckCountText;
+        public Transform[] player1FieldSlots;
+        public Transform[] player2FieldSlots;
+        public Transform player1HandPanel;
+        public Transform player2HandPanel;
+        public Button endTurnButton;
     }
 
-    // Helper to store win panel text reference
+    // Helper component to store win panel references during setup
     public class WinPanelRef : MonoBehaviour
     {
-        public TextMeshProUGUI winnerText;
+        public Text winnerText;
     }
 }

@@ -1,6 +1,5 @@
 using UnityEngine;
 using UnityEngine.UI;
-using TMPro;
 
 namespace SCPBreach
 {
@@ -20,8 +19,8 @@ namespace SCPBreach
         public Button startGameButton;
 
         [Header("Selection Indicators")]
-        public TextMeshProUGUI p1SelectionText;
-        public TextMeshProUGUI p2SelectionText;
+        public Text p1SelectionText;
+        public Text p2SelectionText;
 
         private Faction? player1Selection = null;
         private Faction? player2Selection = null;
@@ -34,7 +33,6 @@ namespace SCPBreach
                 startGameButton.onClick.AddListener(OnStartGameClicked);
             }
 
-            // Player 1 buttons
             if (p1MOGButton != null)
                 p1MOGButton.onClick.AddListener(() => SelectFactionP1(Faction.MOG));
             if (p1ChaosButton != null)
@@ -42,7 +40,6 @@ namespace SCPBreach
             if (p1GOCButton != null)
                 p1GOCButton.onClick.AddListener(() => SelectFactionP1(Faction.GOC));
 
-            // Player 2 buttons
             if (p2MOGButton != null)
                 p2MOGButton.onClick.AddListener(() => SelectFactionP2(Faction.MOG));
             if (p2ChaosButton != null)

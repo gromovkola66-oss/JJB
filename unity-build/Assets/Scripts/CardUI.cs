@@ -1,21 +1,20 @@
 using UnityEngine;
 using UnityEngine.UI;
-using TMPro;
 
 namespace SCPBreach
 {
     public class CardUI : MonoBehaviour
     {
-        public TextMeshProUGUI nameText;
-        public TextMeshProUGUI atkText;
-        public TextMeshProUGUI defText;
+        public Text nameText;
+        public Text atkText;
+        public Text defText;
         public Image background;
 
         // Faction colors
-        private static readonly Color MOGColor = new Color(0.2f, 0.4f, 0.8f, 1f);       // Blue
-        private static readonly Color ChaosColor = new Color(0.8f, 0.2f, 0.2f, 1f);     // Red
-        private static readonly Color GOCColor = new Color(0.2f, 0.7f, 0.3f, 1f);       // Green
-        private static readonly Color ItemColor = new Color(0.9f, 0.75f, 0.1f, 1f);     // Gold/Yellow
+        private static readonly Color MOGColor = new Color(0.2f, 0.4f, 0.8f, 1f);
+        private static readonly Color ChaosColor = new Color(0.8f, 0.2f, 0.2f, 1f);
+        private static readonly Color GOCColor = new Color(0.2f, 0.7f, 0.3f, 1f);
+        private static readonly Color ItemColor = new Color(0.9f, 0.75f, 0.1f, 1f);
 
         public void SetupCard(CardData data)
         {
@@ -31,7 +30,6 @@ namespace SCPBreach
             if (defText != null)
                 defText.text = "DEF: " + data.defense.ToString();
 
-            // Set background color based on faction/type
             if (background != null)
             {
                 if (data.cardType == CardType.Item)
